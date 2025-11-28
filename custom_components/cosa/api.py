@@ -171,9 +171,9 @@ class CosaAPIClient:
         if not self._token:
             raise CosaAPIError("Not authenticated. Please login first.")
 
-        # API expects authToken (camelCase) in headers
+        # API expects authtoken (lowercase) in headers based on working config
         return {
-            "authToken": self._token,
+            "authtoken": self._token,
             "User-Agent": USER_AGENT,
             "Content-Type": CONTENT_TYPE,
         }
@@ -244,6 +244,7 @@ class CosaAPIClient:
 
             headers = self._get_headers()
             headers["provider"] = "cosa"
+            headers["content-type"] = CONTENT_TYPE  # Ensure content-type is set
 
             async with session.post(url, json=payload, headers=headers) as response:
                 if response.status == 200:
