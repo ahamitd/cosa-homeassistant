@@ -12,7 +12,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.CLIMATE]
+PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -20,7 +20,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {}
 
-    # Forward the setup to the climate platform
+    # Create coordinator and store it
+    from .climate import CosaDataUpdateCoordinator
+
+    coordinator = CosaDataUpdateCoordinator(hass, entry)
+    hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
+
+    # Forward the setup to all platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True

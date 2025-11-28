@@ -51,20 +51,26 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up COSA climate platform."""
-    coordinator = CosaDataUpdateCoordinator(hass, config_entry)
-    
-    # Create entity first
+    # Get coordinator from hass.data (created in __init__.py)
+    coordinator: CosaDataUpdateCoordinator = hass.data[DOMAIN][
+        config_entry.entry_id
+    ]["coordinator"]
+
+    # Create entity
     entity = CosaClimate(coordinator, config_entry)
     async_add_entities([entity])
     _LOGGER.info("COSA climate entity created: %s", entity.unique_id)
-    
-    # Then try to refresh data
-    try:
-        await coordinator.async_config_entry_first_refresh()
-        _LOGGER.info("COSA coordinator refresh successful")
-    except Exception as err:
-        _LOGGER.error("Failed to refresh coordinator during setup: %s", err, exc_info=True)
-        # Entity is still created, it will retry on next update
+
+    # Try to refresh data if not already done
+    if not coordinator.data:
+        try:
+            await coordinator.async_config_entry_first_refresh()
+            _LOGGER.info("COSA coordinator refresh successful")
+        except Exception as err:
+            _LOGGER.error(
+                "Failed to refresh coordinator during setup: %s", err, exc_info=True
+            )
+            # Entity is still created, it will retry on next update
 
 
 class CosaDataUpdateCoordinator(DataUpdateCoordinator):
