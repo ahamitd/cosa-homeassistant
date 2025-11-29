@@ -265,7 +265,19 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         if not self.coordinator.data:
             return None
         combi_state = self.coordinator.data.get("combi_state")
-        return HVACMode.OFF if combi_state == "off" else HVACMode.HEAT
+        mode = self.coordinator.data.get("mode")
+        option = self.coordinator.data.get("option")
+
+        # If combi_state is "off", it's OFF
+        if combi_state == "off":
+            return HVACMode.OFF
+
+        # If mode is "manual" and option is "frozen", it's OFF
+        if mode == "manual" and option == "frozen":
+            return HVACMode.OFF
+
+        # Otherwise, it's HEAT
+        return HVACMode.HEAT
 
     @property
     def preset_mode(self) -> Optional[str]:
@@ -343,29 +355,41 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         if temperature is None:
             return
 
-        current_preset = self.preset_mode
-        target_temps = (self.coordinator.data or {}).get("target_temperatures", {})
-
-        if current_preset == PRESET_HOME:
-            target_temps["home"] = temperature
-        elif current_preset == PRESET_AWAY:
-            target_temps["away"] = temperature
-        elif current_preset == PRESET_SLEEP:
-            target_temps["sleep"] = temperature
-        elif current_preset == PRESET_CUSTOM:
-            target_temps["custom"] = temperature
-        else:
-            target_temps["home"] = temperature
+        current_preset = self.preset_mode or PRESET_HOME
 
         try:
             client = await self._ensure_coordinator_client()
-            await client.set_target_temperatures(
-                home_temp=target_temps.get("home", 20),
-                away_temp=target_temps.get("away", 15),
-                sleep_temp=target_temps.get("sleep", 18),
-                custom_temp=target_temps.get("custom", 20),
+
+            # For COSA, we might need to set mode with temperature
+            # Try setting the temperature via mode change first
+            option_map = {
+                PRESET_HOME: MODE_HOME,
+                PRESET_AWAY: MODE_AWAY,
+                PRESET_SLEEP: MODE_SLEEP,
+                PRESET_CUSTOM: MODE_CUSTOM,
+            }
+            option = option_map.get(current_preset, MODE_HOME)
+
+            # Set mode with the new temperature
+            await client.set_mode(
+                mode="manual",
+                option=option,
+                temperature=temperature,
                 endpoint_id=self.coordinator.endpoint_id,
             )
+
+            # Also try to set target temperatures if available
+            try:
+                await client.set_target_temperatures(
+                    home_temp=temperature if current_preset == PRESET_HOME else (self.coordinator.data or {}).get("target_temperatures", {}).get("home", 20),
+                    away_temp=temperature if current_preset == PRESET_AWAY else (self.coordinator.data or {}).get("target_temperatures", {}).get("away", 15),
+                    sleep_temp=temperature if current_preset == PRESET_SLEEP else (self.coordinator.data or {}).get("target_temperatures", {}).get("sleep", 18),
+                    custom_temp=temperature if current_preset == PRESET_CUSTOM else (self.coordinator.data or {}).get("target_temperatures", {}).get("custom", 20),
+                    endpoint_id=self.coordinator.endpoint_id,
+                )
+            except Exception as temp_err:
+                _LOGGER.debug("Failed to set target temperatures, but mode was set: %s", temp_err)
+
             await self.coordinator.async_request_refresh()
         except CosaAPIError as err:
             _LOGGER.error("Error setting temperature: %s", err)

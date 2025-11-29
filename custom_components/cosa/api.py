@@ -377,6 +377,7 @@ class CosaAPIClient:
         self,
         mode: str,
         option: str,
+        temperature: Optional[float] = None,
         endpoint_id: Optional[str] = None,
     ) -> bool:
         """Set endpoint mode."""
@@ -393,6 +394,8 @@ class CosaAPIClient:
                 "mode": mode,
                 "option": option,
             }
+            if temperature is not None:
+                payload["temperature"] = temperature
 
             headers = self._get_headers()
             headers["provider"] = "cosa"
