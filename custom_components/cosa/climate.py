@@ -203,7 +203,6 @@ class CosaDataUpdateCoordinator(DataUpdateCoordinator):
                 },
                 "name": endpoint_data.get("name"),
                 "operation_mode": endpoint_data.get("operationMode"),
-                },
             }
         except CosaAPIError as err:
             _LOGGER.error("Error fetching COSA data: %s", err)
