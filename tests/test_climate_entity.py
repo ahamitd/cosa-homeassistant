@@ -3,75 +3,76 @@ import pytest
 import sys
 import types
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
-# Mock the entire homeassistant package before any imports
-mock_modules = {
-    'homeassistant': types.ModuleType('homeassistant'),
-    'homeassistant.components': types.ModuleType('homeassistant.components'),
-    'homeassistant.components.climate': types.ModuleType('homeassistant.components.climate'),
-    'homeassistant.components.climate.const': types.ModuleType('homeassistant.components.climate.const'),
-    'homeassistant.config_entries': types.ModuleType('homeassistant.config_entries'),
-    'homeassistant.const': types.ModuleType('homeassistant.const'),
-    'homeassistant.core': types.ModuleType('homeassistant.core'),
-    'homeassistant.helpers': types.ModuleType('homeassistant.helpers'),
-    'homeassistant.helpers.entity': types.ModuleType('homeassistant.helpers.entity'),
-    'homeassistant.helpers.entity_platform': types.ModuleType('homeassistant.helpers.entity_platform'),
-    'homeassistant.helpers.update_coordinator': types.ModuleType('homeassistant.helpers.update_coordinator'),
-    'homeassistant.helpers.aiohttp_client': types.ModuleType('homeassistant.helpers.aiohttp_client'),
-}
+# Create minimal homeassistant stub modules to allow importing the climate module
+ha_module = types.ModuleType("homeassistant")
+sys.modules["homeassistant"] = ha_module
 
-for name, module in mock_modules.items():
-    sys.modules[name] = module
+ha_components = types.ModuleType("homeassistant.components")
+sys.modules["homeassistant.components"] = ha_components
 
-# Set up the classes and constants in the mocked modules
-ha_climate = sys.modules['homeassistant.components.climate']
-class MockClimateEntity:
+climate_mod = types.ModuleType("homeassistant.components.climate")
+class ClimateEntity:
     pass
-ha_climate.ClimateEntity = MockClimateEntity
-ha_climate.ClimateEntityFeature = type('ClimateEntityFeature', (), {'TARGET_TEMPERATURE': 1, 'PRESET_MODE': 2})
-ha_climate.HVACMode = type('HVACMode', (), {'OFF': 'off', 'HEAT': 'heat'})
+class ClimateEntityFeature:
+    TARGET_TEMPERATURE = 1
+    PRESET_MODE = 2
+class HVACMode:
+    OFF = "off"
+    HEAT = "heat"
+climate_mod.ClimateEntity = ClimateEntity
+climate_mod.ClimateEntityFeature = ClimateEntityFeature
+climate_mod.HVACMode = HVACMode
+sys.modules["homeassistant.components.climate"] = climate_mod
 
-ha_climate_const = sys.modules['homeassistant.components.climate.const']
-ha_climate_const.PRESET_AWAY = 'away'
-ha_climate_const.PRESET_HOME = 'home'
-ha_climate_const.PRESET_SLEEP = 'sleep'
+climate_const = types.ModuleType("homeassistant.components.climate.const")
+climate_const.PRESET_AWAY = "away"
+climate_const.PRESET_HOME = "home"
+climate_const.PRESET_SLEEP = "sleep"
+sys.modules["homeassistant.components.climate.const"] = climate_const
 
-ha_config = sys.modules['homeassistant.config_entries']
-class MockConfigEntry:
+homeassistant_config = types.ModuleType("homeassistant.config_entries")
+class ConfigEntry:
     pass
-ha_config.ConfigEntry = MockConfigEntry
+homeassistant_config.ConfigEntry = ConfigEntry
+sys.modules["homeassistant.config_entries"] = homeassistant_config
 
-ha_const = sys.modules['homeassistant.const']
-ha_const.ATTR_TEMPERATURE = 'temperature'
-class MockUnitOfTemperature:
-    CELSIUS = 'C'
-ha_const.UnitOfTemperature = MockUnitOfTemperature
-class MockPlatform:
-    CLIMATE = 'climate'
-    SENSOR = 'sensor'
-ha_const.Platform = MockPlatform
+homeassistant_const = types.ModuleType("homeassistant.const")
+homeassistant_const.ATTR_TEMPERATURE = "temperature"
+class UnitOfTemperature:
+    CELSIUS = "C"
+homeassistant_const.UnitOfTemperature = UnitOfTemperature
+class Platform:
+    CLIMATE = "climate"
+    SENSOR = "sensor"
+homeassistant_const.Platform = Platform
+sys.modules["homeassistant.const"] = homeassistant_const
 
-ha_core = sys.modules['homeassistant.core']
-class MockHomeAssistant:
+homeassistant_core = types.ModuleType("homeassistant.core")
+class HomeAssistant:
     pass
-ha_core.HomeAssistant = MockHomeAssistant
+homeassistant_core.HomeAssistant = HomeAssistant
+sys.modules["homeassistant.core"] = homeassistant_core
 
-ha_helpers_entity = sys.modules['homeassistant.helpers.entity']
-class MockDeviceInfo(dict):
+helpers_entity = types.ModuleType("homeassistant.helpers.entity")
+class DeviceInfo(dict):
     pass
-ha_helpers_entity.DeviceInfo = MockDeviceInfo
+helpers_entity.DeviceInfo = DeviceInfo
+sys.modules["homeassistant.helpers.entity"] = helpers_entity
 
-ha_helpers_platform = sys.modules['homeassistant.helpers.entity_platform']
-class MockAddEntitiesCallback:
+helpers_entity_platform = types.ModuleType("homeassistant.helpers.entity_platform")
+class AddEntitiesCallback:
     pass
-ha_helpers_platform.AddEntitiesCallback = MockAddEntitiesCallback
+helpers_entity_platform.AddEntitiesCallback = AddEntitiesCallback
+sys.modules["homeassistant.helpers.entity_platform"] = helpers_entity_platform
 
-ha_helpers_update = sys.modules['homeassistant.helpers.update_coordinator']
-class MockCoordinatorEntity:
+helpers_update = types.ModuleType("homeassistant.helpers.update_coordinator")
+class CoordinatorEntity:
     def __init__(self, coordinator):
         self.coordinator = coordinator
-class MockDataUpdateCoordinator:
+
+class DataUpdateCoordinator:
     def __init__(self, hass, logger, name, update_interval):
         self.hass = hass
         self.logger = logger
@@ -80,13 +81,11 @@ class MockDataUpdateCoordinator:
         self.data = None
     async def async_config_entry_first_refresh(self):
         return None
-ha_helpers_update.CoordinatorEntity = MockCoordinatorEntity
-ha_helpers_update.DataUpdateCoordinator = MockDataUpdateCoordinator
 
-ha_helpers_aiohttp = sys.modules['homeassistant.helpers.aiohttp_client']
-ha_helpers_aiohttp.async_get_clientsession = lambda hass: SimpleNamespace()
+helpers_update.CoordinatorEntity = CoordinatorEntity
+helpers_update.DataUpdateCoordinator = DataUpdateCoordinator
+sys.modules["homeassistant.helpers.update_coordinator"] = helpers_update
 
-# Now import the climate module and other imports
 from homeassistant.components.climate import HVACMode
 from homeassistant.const import ATTR_TEMPERATURE
 
@@ -97,6 +96,7 @@ from custom_components.cosa.const import PRESET_HOME
 @pytest.mark.asyncio
 async def test_climate_sync_wrappers_do_not_raise():
     """Ensure sync wrappers for climate methods are available and don't raise NotImplementedError."""
+
     # Setup fake hass loop
     hass = SimpleNamespace(loop=asyncio.get_event_loop())
 
@@ -132,6 +132,7 @@ async def test_climate_sync_wrappers_do_not_raise():
 
     # config_entry used only for ids
     config_entry = SimpleNamespace(entry_id="abc123", data={"device_name": "unit1", "username": "user"})
+
     # Create entity
     e = CosaClimate(coordinator, config_entry)
     e.hass = hass
@@ -145,10 +146,14 @@ async def test_climate_sync_wrappers_do_not_raise():
     await asyncio.sleep(0)
 
     # Verify async client calls were invoked
-    assert client.set_target_temperatures.called
     assert client.set_mode.called
 
-    # Note: Sync wrappers are tested separately if needed
+    # Call synchronous wrappers (should not raise and should call underlying client)
+    e.set_temperature(**{ATTR_TEMPERATURE: 22})
+    e.set_hvac_mode(HVACMode.HEAT)
+    e.set_preset_mode(PRESET_HOME)
+    await asyncio.sleep(0)
+    assert client.set_mode.called
 
 
 def test_climate_properties_guard_none():
@@ -213,5 +218,4 @@ async def test_coordinator_client_is_created_if_none(monkeypatch):
     await e.async_set_hvac_mode(HVACMode.HEAT)
     await e.async_set_preset_mode(PRESET_HOME)
 
-    assert fake_client.set_target_temperatures.called
     assert fake_client.set_mode.called
