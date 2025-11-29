@@ -3,6 +3,7 @@
   "hacs": "1.6.0",
   "domains": ["climate"],
   "iot_class": "Cloud Polling",
-  "homeassistant": "2023.1.0"
+  "homeassistant": "2023.1.0",
+  "logo": "cosalogo.png"
 }
 

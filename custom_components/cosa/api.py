@@ -66,12 +66,16 @@ class CosaAPIClient:
 
     async def close(self):
         """Close the session."""
-        if self._session and not self._session.closed and self._own_session:
+        if self._session and not getattr(self._session, "closed", False) and self._own_session:
             # Only close if we created the session in _get_session; don't close a session
             # passed in by Home Assistant (async_get_clientsession)
+            _LOGGER.debug("Closing owned session for CosaAPIClient")
             await self._session.close()
             self._session = None
             self._own_session = False
+        else:
+            # We do not close a session we don't own
+            _LOGGER.debug("Not closing session: own=%s, closed=%s", self._own_session, getattr(self._session, "closed", None))
 
     async def login(self) -> bool:
         """Login and get authentication token."""
