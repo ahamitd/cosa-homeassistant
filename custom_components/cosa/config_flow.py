@@ -101,6 +101,10 @@ async def validate_input(hass: HomeAssistant, data: Dict[str, Any]) -> Dict[str,
         msg = str(err).lower()
         if "invalid" in msg and ("auth" in msg or "username" in msg or "credentials" in msg):
             raise InvalidAuth from err
+        # If server returned 404, it indicates invalid endpoint/path — treat as cannot connect
+        if "status 404" in msg or "404" in msg:
+            _LOGGER.warning("Login attempt returned 404 — check the API base URL or endpoint paths; consider using a token if available")
+            raise CannotConnect from err
         raise CannotConnect from err
     except Exception as err:
         _LOGGER.error("Unexpected error during validation: %s", err)
