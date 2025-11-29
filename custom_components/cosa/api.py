@@ -12,6 +12,7 @@ from .const import (
     ENDPOINT_SET_MODE,
     ENDPOINT_SET_TARGET_TEMPERATURES,
     ENDPOINT_LIST_ENDPOINTS,
+    ENDPOINT_SET_OPTION,
     USER_AGENT,
     CONTENT_TYPE,
 )
@@ -234,11 +235,18 @@ class CosaAPIClient:
                 async with session.post(url, json=payload, headers=headers) as response:
                     if response.status == 200:
                         data = await response.json()
-                        # Normalize nested data
-                        if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
-                            nested = data.get("data")
-                            if "endpoint" in nested or "endpoints" in nested or "temperature" in nested:
-                                return nested
+                        # Normalize nested data - other integration style
+                        if isinstance(data, dict):
+                            if "endpoint" in data:
+                                return data["endpoint"]
+                            elif "data" in data and isinstance(data["data"], dict):
+                                nested = data["data"]
+                                if "endpoint" in nested:
+                                    return nested["endpoint"]
+                                else:
+                                    return nested
+                            else:
+                                return data
                         return data
                     elif response.status == 401:
                         # Token expired, try to re-login
