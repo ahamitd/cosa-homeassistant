@@ -223,5 +223,26 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
     def preset_mode(self) -> Optional[str]:
         option = self.coordinator.data.get("option")
         mode = self.coordinator.data.get("mode")
+        
+        # Check mode first (auto, schedule, manual)
+        if mode == "auto":
+            return PRESET_AUTO
+        elif mode == "schedule":
+            return PRESET_SCHEDULE
 
-    
+        # Then check option (for manual mode)
+        if option == MODE_HOME:
+            return PRESET_HOME
+        elif option == MODE_AWAY:
+            return PRESET_AWAY
+        elif option == MODE_SLEEP:
+            return PRESET_SLEEP
+        elif option == MODE_CUSTOM:
+            return PRESET_CUSTOM
+        elif option == MODE_AUTO:
+            return PRESET_AUTO
+        elif option == MODE_SCHEDULE:
+            return PRESET_SCHEDULE
+        
+        return None
+
