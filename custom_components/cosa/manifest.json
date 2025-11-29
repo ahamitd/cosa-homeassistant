@@ -1,7 +1,7 @@
 {
   "domain": "cosa",
   "name": "COSA Termostat",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "documentation": "https://github.com/hamitdurmus/cosa-homeassistant",
   "issue_tracker": "https://github.com/hamitdurmus/cosa-homeassistant/issues",
   "dependencies": [],

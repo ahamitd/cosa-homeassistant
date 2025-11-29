@@ -26,3 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic endpoint detection
 - Error handling and reconnection support
 
+
+## [1.0.1] - 2025-11-29
+
+### Added
+- HACS packaging improvements
+- Added logo and README updates
+- Cleaned tests and improved API response handling

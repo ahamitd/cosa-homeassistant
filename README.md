@@ -1,5 +1,7 @@
 # COSA Home Assistant Entegrasyonu
 
+![COSA logo](custom_components/cosa/icon.png)
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -27,7 +29,7 @@ COSA termostatınızı Home Assistant'a entegre edin ve akıllı ev sisteminizin
 1. HACS'ı açın (Eğer yüklü değilse, [buradan](https://hacs.xyz/) yükleyin)
 2. "Entegrasyonlar" sekmesine gidin
 3. Sağ üstteki **⋮** menüsünden **"Özel Depolar"**ı seçin
-4. Depo URL'sini ekleyin: `https://github.com/hamitdurmus/cosa-homeassistant`
+4. Depo URL'sini ekleyin: `https://github.com/ahamitd/cosa-homeassistant`
 5. Kategori olarak **"Integration"** seçin
 6. **"COSA Termostat"** entegrasyonunu arayın ve yükleyin
 7. Home Assistant'ı yeniden başlatın
@@ -40,7 +42,7 @@ COSA termostatınızı Home Assistant'a entegre edin ve akıllı ev sisteminizin
 1. Home Assistant'ın `config` klasörüne `custom_components` klasörünü oluşturun (eğer yoksa)
 2. Bu repository'yi klonlayın veya indirin:
    ```bash
-   git clone https://github.com/hamitdurmus/cosa-homeassistant.git
+   git clone https://github.com/ahamitd/cosa-homeassistant.git
    ```
 3. `cosa` klasörünü `config/custom_components/` klasörüne kopyalayın:
    ```
@@ -165,7 +167,7 @@ Katkılarınız memnuniyetle karşılanır! Lütfen:
 
 Sorun yaşarsanız:
 
-1. [GitHub Issues](https://github.com/hamitdurmus/cosa-homeassistant/issues) sayfasında hata bildirimi oluşturun
+1. [GitHub Issues](https://github.com/ahamitd/cosa-homeassistant/issues) sayfasında hata bildirimi oluşturun
 2. Home Assistant log dosyalarını kontrol edin
 3. Geliştirici konsolunda hata mesajlarını kontrol edin
 
@@ -176,4 +178,3 @@ Sorun yaşarsanız:
 - Tüm katkıda bulunanlara
 
 ---
-
