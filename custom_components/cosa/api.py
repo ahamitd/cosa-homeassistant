@@ -46,6 +46,10 @@ class CosaAPIClient:
             self._token = token
         # allow passing an existing aiohttp session (recommended: async_get_clientsession(hass))
         self._session: Optional[aiohttp.ClientSession] = session
+        # Whether the session is created (owned) by this client. If a session is passed in
+        # (e.g., from Home Assistant's async_get_clientsession), we must NOT close it.
+        # This flag will be set to True when we create a new session inside _get_session().
+        self._own_session: bool = False
         self._retry_count = 3  # Retry count for failed requests
 
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -55,12 +59,18 @@ class CosaAPIClient:
             self._session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=API_TIMEOUT)
             )
+            # We created this session; we are responsible for closing it later
+            self._own_session = True
         return self._session
 
     async def close(self):
         """Close the session."""
-        if self._session and not self._session.closed:
+        if self._session and not self._session.closed and self._own_session:
+            # Only close if we created the session in _get_session; don't close a session
+            # passed in by Home Assistant (async_get_clientsession)
             await self._session.close()
+            self._session = None
+            self._own_session = False
 
     async def login(self) -> bool:
         """Login and get authentication token."""
