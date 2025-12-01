@@ -13,7 +13,7 @@ from homeassistant.components.climate import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -50,6 +50,16 @@ PRESET_TO_OPTION = {
     PRESET_MANUEL: OPTION_CUSTOM,
 }
 
+# Preset İkonları - COSA uygulamasındaki gibi
+PRESET_ICONS = {
+    PRESET_EVDE: "mdi:home",
+    PRESET_UYKU: "mdi:bed",
+    PRESET_DISARI: "mdi:walk",
+    PRESET_MANUEL: "mdi:circle-medium",
+    PRESET_OTOMATIK: "mdi:circle-medium",
+    PRESET_HAFTALIK: "mdi:circle-medium",
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -78,6 +88,7 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
     _attr_min_temp = MIN_TEMP
     _attr_max_temp = MAX_TEMP
     _attr_target_temperature_step = TEMP_STEP
+    _enable_turn_on_off_backwards_compatibility = False
 
     def __init__(self, coordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator)
@@ -88,6 +99,9 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             manufacturer="COSA",
             model="Smart Thermostat",
         )
+        # Optimistic update için geçici değerler
+        self._optimistic_target_temp: float | None = None
+        self._optimistic_preset: str | None = None
 
     @property
     def _endpoint(self) -> dict:
@@ -112,6 +126,9 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def target_temperature(self) -> float | None:
+        # Optimistic değer varsa onu göster
+        if self._optimistic_target_temp is not None:
+            return self._optimistic_target_temp
         return self._endpoint.get("targetTemperature")
 
     @property
@@ -132,6 +149,10 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def preset_mode(self) -> str | None:
+        # Optimistic değer varsa onu göster
+        if self._optimistic_preset is not None:
+            return self._optimistic_preset
+            
         mode = self._endpoint.get("mode")
         option = self._endpoint.get("option")
         
@@ -165,15 +186,39 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             return "mdi:thermostat-auto"  # Otomatik
         elif mode == MODE_MANUAL:
             if option == OPTION_HOME:
-                return "mdi:home-thermometer"  # Evde
+                return "mdi:home"  # Evde
             elif option == OPTION_SLEEP:
                 return "mdi:bed"  # Uyku
             elif option == OPTION_AWAY:
-                return "mdi:exit-run"  # Dışarı
+                return "mdi:walk"  # Dışarı (yürüyen adam)
             elif option == OPTION_CUSTOM:
                 return "mdi:tune"  # Manuel (ayar)
         
         return "mdi:thermostat"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Coordinator güncellemesini işle ve optimistic değerleri temizle."""
+        # API'den gelen gerçek veriyle optimistic değerleri karşılaştır
+        real_target = self._endpoint.get("targetTemperature")
+        if self._optimistic_target_temp is not None and real_target == self._optimistic_target_temp:
+            self._optimistic_target_temp = None
+        
+        # Preset kontrolü
+        mode = self._endpoint.get("mode")
+        option = self._endpoint.get("option")
+        real_preset = None
+        if mode == MODE_SCHEDULE:
+            real_preset = PRESET_HAFTALIK
+        elif mode == MODE_AUTO:
+            real_preset = PRESET_OTOMATIK
+        else:
+            real_preset = OPTION_TO_PRESET.get(option, PRESET_EVDE)
+        
+        if self._optimistic_preset is not None and real_preset == self._optimistic_preset:
+            self._optimistic_preset = None
+        
+        self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode == HVACMode.OFF:
@@ -182,6 +227,10 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             await self.coordinator.async_set_mode(MODE_MANUAL, OPTION_HOME)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
+        # Optimistic update
+        self._optimistic_preset = preset_mode
+        self.async_write_ha_state()
+        
         if preset_mode == PRESET_HAFTALIK:
             await self.coordinator.async_set_mode(MODE_SCHEDULE)
         elif preset_mode == PRESET_OTOMATIK:
@@ -194,6 +243,10 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
+        
+        # Optimistic update - hemen UI'ı güncelle
+        self._optimistic_target_temp = temperature
+        self.async_write_ha_state()
         
         option = self._endpoint.get("option", OPTION_HOME)
         
@@ -227,6 +280,10 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         forecast_data = self._forecast.get("hourly", [{}])
         current_weather = forecast_data[0] if forecast_data else {}
         
+        # Preset ikonu bilgisini ekle
+        current_preset = self.preset_mode
+        preset_icon = PRESET_ICONS.get(current_preset, "mdi:circle-medium")
+        
         return {
             "mode": self._endpoint.get("mode"),
             "option": self._endpoint.get("option"),
@@ -244,4 +301,5 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             "outdoor_temperature": current_weather.get("temperature"),
             "outdoor_humidity": current_weather.get("humidity"),
             "weather_icon": current_weather.get("icon"),
+            "preset_icon": preset_icon,
         }

@@ -1,154 +1,183 @@
 # COSA Home Assistant Entegrasyonu - Kurulum Kılavuzu
 
-## Gereksinimler
+## 🏠 Genel Bakış
 
-- Home Assistant 2023.1 veya üzeri
-- Python 3.9 veya üzeri
-- COSA uygulamasında aktif hesap
+COSA Smart Thermostat entegrasyonu, COSA termostatınızı Home Assistant üzerinden kontrol etmenizi sağlar.
 
-## Kurulum Adımları
+### Özellikler
 
-### 1. Dosyaları Kopyalama
+- 🌡️ **Termostat Kontrolü:** Sıcaklık ayarlama, mod değiştirme
+- 📊 **18 Sensör:** Sıcaklık, nem, pil durumu, dış hava ve daha fazlası
+- 🔒 **Çocuk Kilidi:** Açma/kapama kontrolü
+- 🏠 **6 Preset Modu:** Evde, Uyku, Dışarı, Manuel, Otomatik, Haftalık
+- 🔥 **Anlık Durum:** Kombi ısıtma durumu gösterimi
+- 🌤️ **Hava Durumu:** Dış sıcaklık ve nem bilgisi
 
-Home Assistant'ın `config` klasörüne `custom_components` klasörünü kopyalayın:
+## 📋 Gereksinimler
+
+- Home Assistant 2024.1 veya üzeri
+- COSA mobil uygulamasında aktif hesap
+- İnternet bağlantısı
+
+## �� Kurulum
+
+### Yöntem 1: HACS ile Kurulum (Önerilen)
+
+1. HACS > Entegrasyonlar'a gidin
+2. Sağ üst köşedeki **⋮** menüsüne tıklayın
+3. **Özel depolar** seçin
+4. Depo URL'si: `https://github.com/ahamitd/cosa-homeassistant`
+5. Kategori: **Entegrasyon** seçin
+6. **Ekle** butonuna tıklayın
+7. COSA Smart Thermostat'ı bulun ve kurun
+8. Home Assistant'ı yeniden başlatın
+
+### Yöntem 2: Manuel Kurulum
+
+1. Bu depoyu indirin veya klonlayın
+2. `custom_components/cosa` klasörünü Home Assistant'ın `config/custom_components/` klasörüne kopyalayın
+3. Home Assistant'ı yeniden başlatın
 
 ```
 config/
 └── custom_components/
     └── cosa/
         ├── __init__.py
-        ├── manifest.json
-        ├── config_flow.py
-        ├── climate.py
         ├── api.py
+        ├── binary_sensor.py
+        ├── climate.py
+        ├── config_flow.py
         ├── const.py
-        └── strings.json
+        ├── manifest.json
+        ├── sensor.py
+        ├── strings.json
+        ├── switch.py
+        └── icons/
+            └── icon.png
 ```
 
-**Önemli:** `custom_components` klasörü yoksa oluşturun.
+## ⚙️ Entegrasyonu Ekleme
 
-### 2. Home Assistant'ı Yeniden Başlatma
+1. **Ayarlar** > **Cihazlar ve Hizmetler**'e gidin
+2. **+ Entegrasyon Ekle** butonuna tıklayın
+3. **"COSA"** yazarak arayın
+4. **COSA Smart Thermostat** seçin
+5. COSA hesap bilgilerinizi girin:
+   - **E-posta:** COSA uygulamasındaki e-posta adresiniz
+   - **Şifre:** COSA uygulamasındaki şifreniz
+6. Cihazınızı seçin (birden fazla varsa)
 
-Home Assistant'ı tamamen yeniden başlatın (sadece reload değil).
+## 🎛️ Kullanım
 
-### 3. Entegrasyonu Ekleme
+### Termostat Kartı
 
-1. Home Assistant arayüzünde **Ayarlar** > **Cihazlar ve Hizmetler**'e gidin
-2. Sağ alttaki **+ Entegrasyon Ekle** butonuna tıklayın
-3. Arama kutusuna **"COSA"** yazın
-4. **COSA Termostat** entegrasyonunu seçin
+Entegrasyon kurulduktan sonra termostat kartında şunları göreceksiniz:
 
-### 4. Giriş Bilgilerini Girme
+| Özellik | Açıklama |
+|---------|----------|
+| 🌡️ Mevcut Sıcaklık | Oda sıcaklığı |
+| 💧 Nem | Oda nem oranı |
+| 🎯 Hedef Sıcaklık | Ayarlanan sıcaklık (0.1°C hassasiyet) |
+| 🔥 Isıtma Durumu | Kombi aktif/pasif |
 
-1. **Kullanıcı Adı:** COSA uygulamasında kullandığınız kullanıcı adı veya e-posta
-2. **Şifre:** COSA uygulamasında kullandığınız şifre
-3. **Endpoint ID (Opsiyonel):** Eğer otomatik tespit edilmezse, COSA uygulamasından cihaz ID'nizi girebilirsiniz
+### Preset Modları
 
-### 5. Doğrulama
+| Mod | İkon | Açıklama |
+|-----|------|----------|
+| 🏠 Evde | `mdi:home` | Ev modu |
+| 🛏️ Uyku | `mdi:bed` | Gece/uyku modu |
+| 🚶 Dışarı | `mdi:walk` | Dışarıda modu |
+| ⚙️ Manuel | `mdi:tune` | Manuel ayar |
+| 🤖 Otomatik | `mdi:thermostat-auto` | Otomatik mod |
+| 📅 Haftalık | `mdi:calendar-clock` | Haftalık program |
 
-Entegrasyon başarıyla kurulduktan sonra:
+### Entity'ler
 
-1. **Ayarlar** > **Cihazlar ve Hizmetler**'de **COSA Termostat** görünmeli
-2. Ana sayfada termostat cihazınız görünmeli
-3. Termostat kontrolü yapabilmelisiniz
+#### Climate (1 adet)
+- `climate.evim` - Ana termostat kontrolü
 
-## Kullanım
+#### Sensörler (18 adet)
+| Entity | Açıklama |
+|--------|----------|
+| Oda Sıcaklığı | Mevcut oda sıcaklığı |
+| Nem | Oda nem oranı |
+| Hedef Sıcaklık | Ayarlanan hedef |
+| Pil Voltajı | Termostat pil voltajı |
+| Pil Seviyesi | Pil yüzdesi |
+| Sinyal Gücü | WiFi sinyal gücü |
+| Kombi Durumu | Açık/Kapalı |
+| Mod | Aktif mod |
+| Seçenek | Aktif preset |
+| Dış Sıcaklık | Hava durumu sıcaklığı |
+| Dış Nem | Hava durumu nemi |
+| Hava Durumu | Hava durumu ikonu |
+| Evde Sıcaklığı | Ev modu sıcaklığı |
+| Dışarıda Sıcaklığı | Dışarı modu sıcaklığı |
+| Uyku Sıcaklığı | Uyku modu sıcaklığı |
+| Özel Sıcaklık | Manuel mod sıcaklığı |
+| Firmware | Cihaz yazılım versiyonu |
+| Kalibrasyon | Sıcaklık kalibrasyonu |
 
-### Termostat Kontrolü
+#### Binary Sensörler (4 adet)
+| Entity | Açıklama |
+|--------|----------|
+| Bağlantı | Cihaz bağlantı durumu |
+| Isıtma | Kombi aktif mi? |
+| Açık Pencere | Pencere açık algılama |
+| Çocuk Kilidi Durumu | Kilit durumu |
 
-- **Açık/Kapalı:** HVAC modunu değiştirerek kombiyi açıp kapatabilirsiniz
-- **Sıcaklık Ayarı:** Hedef sıcaklığı ayarlayabilirsiniz (5-32°C arası)
-- **Preset Modları:**
-  - **Ev (Home):** Ev modu
-  - **Dışarıda (Away):** Dışarıda modu
-  - **Gece (Sleep):** Gece modu
-  - **Kullanıcı (Custom):** Özel mod
+#### Switch (1 adet)
+| Entity | Açıklama |
+|--------|----------|
+| Çocuk Kilidi | Çocuk kilidini aç/kapat |
 
-### Sensörler
+## 🔧 Sorun Giderme
 
-Entegrasyon aşağıdaki bilgileri sağlar:
-
-- **Mevcut Sıcaklık:** Oda sıcaklığı
-- **Hedef Sıcaklık:** Ayarlanan hedef sıcaklık
-- **Nem:** Oda nem oranı
-- **Durum:** Kombi çalışma durumu (Açık/Kapalı)
-- **Mod:** Aktif preset modu
-
-## Sorun Giderme
-
-### "Bağlanılamadı" Hatası
+### "Bağlantı Kurulamadı" Hatası
 
 - İnternet bağlantınızı kontrol edin
-- COSA API'sinin erişilebilir olduğundan emin olun (`https://kiwi-api.nuvia.com.tr`)
-- Firewall ayarlarınızı kontrol edin
+- COSA API'sinin erişilebilir olduğunu doğrulayın
+- Firewall/VPN ayarlarını kontrol edin
 
 ### "Geçersiz Kimlik Doğrulama" Hatası
 
-- Kullanıcı adı ve şifrenizin doğru olduğundan emin olun
-- COSA uygulamasında giriş yapabildiğinizi kontrol edin
-- Şifrenizde özel karakterler varsa dikkatli girin
+- E-posta ve şifrenizin doğru olduğundan emin olun
+- COSA mobil uygulamasında giriş yapabildiğinizi test edin
+- Şifrenizde özel karakter varsa dikkatli girin
 
-### Endpoint ID Bulunamadı
+### Sıcaklık Değişikliği Gecikmesi
 
-- Endpoint ID'yi manuel olarak girebilirsiniz
-- COSA uygulamasından cihaz bilgilerinizi kontrol edin
-- API response'unda endpoint ID'nin bulunup bulunmadığını kontrol edin
+- Entegrasyon her 10 saniyede bir güncellenir
+- API isteği sırasında kısa gecikme normaldir
 
-### Token Hatası
+### Ikon Görünmüyor
 
-- Login başarılı oluyor ancak token alınamıyorsa, API response formatı değişmiş olabilir
-- Log dosyalarını kontrol edin: `config/home-assistant.log`
-- Geliştirici konsolunda hata mesajlarını kontrol edin
+- Home Assistant'ı yeniden başlatın
+- Tarayıcı önbelleğini temizleyin (Ctrl+F5)
 
-### Güncelleme Sorunları
+## 📡 API Bilgisi
 
-- Termostat durumu güncellenmiyorsa, Home Assistant'ı yeniden başlatmayı deneyin
-- API bağlantısını kontrol edin
-- Log dosyalarında hata mesajlarını kontrol edin
+Entegrasyon aşağıdaki COSA API endpoint'lerini kullanır:
 
-## API Endpoint'leri
+| Endpoint | Açıklama |
+|----------|----------|
+| `/api/users/login` | Kullanıcı girişi |
+| `/api/endpoints/getEndpoints` | Cihaz listesi |
+| `/api/endpoints/getEndpoint` | Cihaz detayları |
+| `/api/endpoints/setMode` | Mod değiştirme |
+| `/api/endpoints/setTargetTemperatures` | Sıcaklık ayarlama |
+| `/api/endpoints/setCombiSettings` | Kombi ayarları |
+| `/api/places/getForecast` | Hava durumu |
 
-Entegrasyon aşağıdaki API endpoint'lerini kullanır:
+## 📄 Lisans
 
-- `POST /users/login` - Kullanıcı girişi ve token alma
-- `POST /endpoints/getEndpoint` - Termostat durumu alma
-- `POST /endpoints/setMode` - Mod ayarlama
-- `POST /endpoints/setTargetTemperatures` - Hedef sıcaklık ayarlama
+MIT License - Detaylar için [LICENSE](LICENSE) dosyasına bakın.
 
-## Geliştirme Notları
+## 💬 Destek
 
-### Login Endpoint Alternatifleri
+- GitHub Issues: [https://github.com/ahamitd/cosa-homeassistant/issues](https://github.com/ahamitd/cosa-homeassistant/issues)
+- Telegram: [@ahamitd](https://t.me/ahamitd)
 
-Entegrasyon farklı login endpoint formatlarını deneyerek çalışır:
-- `/users/login`
-- `/auth/login`
-- `/login`
+---
 
-### Token Formatları
-
-Entegrasyon aşağıdaki token formatlarını destekler:
-- `token`
-- `authtoken`
-- `access_token`
-- `accessToken`
-- `data.token`
-- `data.authtoken`
-
-### Endpoint ID Tespiti
-
-Login sırasında endpoint ID otomatik olarak tespit edilmeye çalışılır. Eğer bulunamazsa, kullanıcıdan manuel olarak istenir.
-
-## Destek
-
-Sorun yaşarsanız:
-
-1. Home Assistant log dosyalarını kontrol edin
-2. Geliştirici konsolunda hata mesajlarını kontrol edin
-3. API response'larını inceleyin
-4. GitHub issues'da benzer sorunları arayın
-
-## Lisans
-
-Bu entegrasyon ahamitd tarafından geliştirilmiştir ve açık kaynaklıdır.
-Herhangi bir telif ve sorularınız için https://t.me/ahamitd iletişime geçebilirsiniz.
-
+**Geliştirici:** [@ahamitd](https://github.com/ahamitd)
