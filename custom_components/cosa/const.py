@@ -20,13 +20,15 @@ API_TIMEOUT = 30
 
 # =============================================================================
 # API ENDPOINT'LERİ
-# POST https://kiwi-api.nuvia.com.tr/api/users/login → Login
-# POST https://kiwi-api.nuvia.com.tr/api/users/getInfo → Kullanıcı bilgisi + endpoint'ler
-# POST https://kiwi-api.nuvia.com.tr/api/endpoints/setMode → Mod değiştirme
-# POST https://kiwi-api.nuvia.com.tr/api/endpoints/setTargetTemperatures → Sıcaklık ayarı
+# POST /api/users/login → Login
+# POST /api/endpoints/getEndpoints → Endpoint listesi (cihaz listesi)
+# POST /api/endpoints/getEndpoint → Tek endpoint detayı
+# POST /api/endpoints/setMode → Mod değiştirme
+# POST /api/endpoints/setTargetTemperatures → Sıcaklık ayarı
 # =============================================================================
 ENDPOINT_LOGIN = "/api/users/login"
-ENDPOINT_GET_INFO = "/api/users/getInfo"
+ENDPOINT_GET_ENDPOINTS = "/api/endpoints/getEndpoints"
+ENDPOINT_GET_ENDPOINT = "/api/endpoints/getEndpoint"
 ENDPOINT_SET_MODE = "/api/endpoints/setMode"
 ENDPOINT_SET_TARGET_TEMPERATURES = "/api/endpoints/setTargetTemperatures"
 

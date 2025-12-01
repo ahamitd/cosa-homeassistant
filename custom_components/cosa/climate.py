@@ -46,7 +46,6 @@ from .api import (
     CosaAPI,
     CosaAPIError,
     CosaAuthError,
-    parse_endpoint_data,
     extract_endpoint_state,
 )
 from .const import (
@@ -135,7 +134,7 @@ class CosaCoordinator(DataUpdateCoordinator):
         """API'den güncel verileri çek.
         
         Her 10 saniyede çağrılır.
-        getInfo API'sinden sıcaklık, nem, mod, option, targetTemperatures alınır.
+        getEndpoints API'sinden sıcaklık, nem, mod, option, targetTemperatures alınır.
         
         Returns:
             Normalize edilmiş endpoint durumu
@@ -144,11 +143,8 @@ class CosaCoordinator(DataUpdateCoordinator):
             UpdateFailed: API hatası durumunda
         """
         try:
-            # Kullanıcı bilgilerini al
-            user_info = await self._api.get_user_info(self._token)
-            
-            # Endpoint'leri parse et
-            endpoints = parse_endpoint_data(user_info)
+            # Endpoint'leri al
+            endpoints = await self._api.get_endpoints(self._token)
             
             if not endpoints:
                 raise UpdateFailed("Endpoint bulunamadı")
@@ -156,7 +152,7 @@ class CosaCoordinator(DataUpdateCoordinator):
             # Bizim endpoint'i bul
             endpoint = None
             for ep in endpoints:
-                ep_id = ep.get("_id") or ep.get("id") or ep.get("endpoint")
+                ep_id = ep.get("id") or ep.get("_id")
                 if ep_id == self._endpoint_id:
                     endpoint = ep
                     break
@@ -177,13 +173,12 @@ class CosaCoordinator(DataUpdateCoordinator):
                 self._token = await self._api.login(self._email, self._password)
                 
                 # Tekrar dene
-                user_info = await self._api.get_user_info(self._token)
-                endpoints = parse_endpoint_data(user_info)
+                endpoints = await self._api.get_endpoints(self._token)
                 
                 if endpoints:
                     endpoint = endpoints[0]
                     for ep in endpoints:
-                        ep_id = ep.get("_id") or ep.get("id") or ep.get("endpoint")
+                        ep_id = ep.get("id") or ep.get("_id")
                         if ep_id == self._endpoint_id:
                             endpoint = ep
                             break
@@ -410,6 +405,7 @@ class CosaClimate(CoordinatorEntity[CosaCoordinator], ClimateEntity):
             attrs["mode"] = self.coordinator.data.get("mode")
             attrs["option"] = self.coordinator.data.get("option")
             attrs["combi_state"] = self.coordinator.data.get("combi_state")
+            attrs["is_connected"] = self.coordinator.data.get("is_connected")
             
             target_temps = self.coordinator.data.get("target_temperatures", {})
             attrs["target_temp_home"] = target_temps.get("home")

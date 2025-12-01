@@ -1,13 +1,12 @@
 {
   "domain": "cosa",
   "name": "COSA Smart Thermostat",
-  "version": "2.0.0",
-  "documentation": "https://github.com/ahamitd/cosa-homeassistant",
-  "issue_tracker": "https://github.com/ahamitd/cosa-homeassistant/issues",
-  "dependencies": [],
-  "codeowners": ["@ahamitd"],
-  "requirements": ["aiohttp>=3.8.0"],
+  "codeowners": ["@hamitdurmus"],
   "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/hamitdurmus/cosa-homeassistant",
   "iot_class": "cloud_polling",
-  "integration_type": "hub"
+  "issue_tracker": "https://github.com/hamitdurmus/cosa-homeassistant/issues",
+  "requirements": ["aiohttp>=3.8.0"],
+  "version": "2.0.1"
 }

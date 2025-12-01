@@ -13,7 +13,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import CosaAPI, CosaAPIError, CosaAuthError, parse_endpoint_data
+from .api import CosaAPI, CosaAPIError, CosaAuthError
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,12 +40,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     token = await api.login(email, password)
     _LOGGER.info("Login başarılı, token alındı")
     
-    # 2. Kullanıcı bilgilerini al
-    user_info = await api.get_user_info(token)
-    _LOGGER.info("Kullanıcı bilgileri alındı")
-    
-    # 3. Endpoint'leri parse et
-    endpoints = parse_endpoint_data(user_info)
+    # 2. Endpoint'leri al
+    endpoints = await api.get_endpoints(token)
     _LOGGER.info("Endpoint sayısı: %d", len(endpoints))
     
     if not endpoints:
@@ -54,11 +50,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     
     # İlk endpoint'i kullan
     first_endpoint = endpoints[0]
-    endpoint_id = (
-        first_endpoint.get("_id") 
-        or first_endpoint.get("id") 
-        or first_endpoint.get("endpoint")
-    )
+    endpoint_id = first_endpoint.get("id") or first_endpoint.get("_id")
     device_name = first_endpoint.get("name", "COSA Termostat")
     
     _LOGGER.info("Endpoint bulundu: id=%s, name=%s", endpoint_id, device_name)

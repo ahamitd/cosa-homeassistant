@@ -6,7 +6,8 @@ trafiğinden alınmıştır.
 
 API Endpoint'leri:
 - POST /api/users/login → JWT Token alma
-- POST /api/users/getInfo → Kullanıcı bilgisi ve endpoint'ler
+- POST /api/endpoints/getEndpoints → Cihaz listesi
+- POST /api/endpoints/getEndpoint → Tek cihaz detayı
 - POST /api/endpoints/setMode → Mod değiştirme
 - POST /api/endpoints/setTargetTemperatures → Sıcaklık ayarı
 """
@@ -22,7 +23,8 @@ from .const import (
     API_BASE_URL,
     API_TIMEOUT,
     ENDPOINT_LOGIN,
-    ENDPOINT_GET_INFO,
+    ENDPOINT_GET_ENDPOINTS,
+    ENDPOINT_GET_ENDPOINT,
     ENDPOINT_SET_MODE,
     ENDPOINT_SET_TARGET_TEMPERATURES,
     HEADER_USER_AGENT,
@@ -150,11 +152,11 @@ class CosaAPI:
         
         return None
 
-    async def get_user_info(self, token: str) -> dict[str, Any]:
-        """Kullanıcı bilgilerini ve endpoint'leri al."""
-        url = f"{API_BASE_URL}{ENDPOINT_GET_INFO}"
+    async def get_endpoints(self, token: str) -> list[dict[str, Any]]:
+        """Kullanıcının tüm cihazlarını (endpoint'lerini) al."""
+        url = f"{API_BASE_URL}{ENDPOINT_GET_ENDPOINTS}"
         
-        _LOGGER.debug("GetInfo isteği gönderiliyor: %s", url)
+        _LOGGER.debug("GetEndpoints isteği gönderiliyor: %s", url)
         
         try:
             async with self._session.post(
@@ -164,26 +166,63 @@ class CosaAPI:
                 timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
             ) as response:
                 response_text = await response.text()
-                _LOGGER.debug("GetInfo yanıtı: status=%s", response.status)
+                _LOGGER.debug("GetEndpoints yanıtı: status=%s", response.status)
                 
                 if response.status == 401:
                     _LOGGER.warning("Token geçersiz veya süresi dolmuş")
                     raise CosaAuthError("Token geçersiz veya süresi dolmuş")
                 
                 if response.status != 200:
-                    _LOGGER.error("GetInfo hatası: %s - %s", response.status, response_text[:200])
-                    raise CosaAPIError(f"GetInfo başarısız: HTTP {response.status}")
+                    _LOGGER.error("GetEndpoints hatası: %s - %s", response.status, response_text[:200])
+                    raise CosaAPIError(f"GetEndpoints başarısız: HTTP {response.status}")
                 
                 data = await response.json()
                 
                 # API ok:0 dönerse hata var
                 if isinstance(data, dict) and data.get("ok") == 0:
                     error_code = data.get("code", "unknown")
-                    _LOGGER.error("GetInfo API hatası: code=%s", error_code)
-                    raise CosaAPIError(f"GetInfo hatası: code={error_code}")
+                    _LOGGER.error("GetEndpoints API hatası: code=%s", error_code)
+                    raise CosaAPIError(f"GetEndpoints hatası: code={error_code}")
                 
-                _LOGGER.debug("GetInfo yanıtı alındı")
-                return data
+                endpoints = data.get("endpoints", [])
+                _LOGGER.debug("GetEndpoints yanıtı: %d endpoint bulundu", len(endpoints))
+                return endpoints
+                
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Bağlantı hatası: %s", err)
+            raise CosaAPIError(f"Bağlantı hatası: {err}") from err
+
+    async def get_endpoint_detail(self, token: str, endpoint_id: str) -> dict[str, Any]:
+        """Tek bir endpoint'in detaylı bilgisini al."""
+        url = f"{API_BASE_URL}{ENDPOINT_GET_ENDPOINT}"
+        
+        payload = {"endpoint": endpoint_id}
+        
+        _LOGGER.debug("GetEndpoint isteği: %s - endpoint=%s", url, endpoint_id)
+        
+        try:
+            async with self._session.post(
+                url,
+                json=payload,
+                headers=self._get_auth_headers(token),
+                timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
+            ) as response:
+                if response.status == 401:
+                    raise CosaAuthError("Token geçersiz veya süresi dolmuş")
+                
+                if response.status != 200:
+                    response_text = await response.text()
+                    _LOGGER.error("GetEndpoint hatası: %s - %s", response.status, response_text[:200])
+                    raise CosaAPIError(f"GetEndpoint başarısız: HTTP {response.status}")
+                
+                data = await response.json()
+                
+                if isinstance(data, dict) and data.get("ok") == 0:
+                    error_code = data.get("code", "unknown")
+                    _LOGGER.error("GetEndpoint API hatası: code=%s", error_code)
+                    raise CosaAPIError(f"GetEndpoint hatası: code={error_code}")
+                
+                return data.get("endpoint", data)
                 
         except aiohttp.ClientError as err:
             _LOGGER.error("Bağlantı hatası: %s", err)
@@ -196,7 +235,14 @@ class CosaAPI:
         mode: str,
         option: Optional[str] = None,
     ) -> bool:
-        """Termostat modunu değiştir."""
+        """Termostat modunu değiştir.
+        
+        Args:
+            token: JWT auth token
+            endpoint_id: Cihaz ID'si
+            mode: "manual", "auto" veya "schedule"
+            option: Manual mod için: "home", "sleep", "away", "custom", "frozen"
+        """
         url = f"{API_BASE_URL}{ENDPOINT_SET_MODE}"
         
         payload: dict[str, Any] = {
@@ -204,7 +250,8 @@ class CosaAPI:
             "mode": mode,
         }
         
-        if mode == "manual" and option:
+        # Manual mod için option gerekli
+        if option:
             payload["option"] = option
         
         _LOGGER.debug("SetMode isteği: %s - payload=%s", url, payload)
@@ -223,6 +270,13 @@ class CosaAPI:
                     response_text = await response.text()
                     _LOGGER.error("SetMode hatası: %s - %s", response.status, response_text[:200])
                     raise CosaAPIError(f"SetMode başarısız: HTTP {response.status}")
+                
+                data = await response.json()
+                
+                if isinstance(data, dict) and data.get("ok") == 0:
+                    error_code = data.get("code", "unknown")
+                    _LOGGER.error("SetMode API hatası: code=%s", error_code)
+                    raise CosaAPIError(f"SetMode hatası: code={error_code}")
                 
                 _LOGGER.info("Mod başarıyla değiştirildi: mode=%s, option=%s", mode, option)
                 return True
@@ -270,6 +324,13 @@ class CosaAPI:
                     _LOGGER.error("SetTargetTemperatures hatası: %s - %s", response.status, response_text[:200])
                     raise CosaAPIError(f"SetTargetTemperatures başarısız: HTTP {response.status}")
                 
+                data = await response.json()
+                
+                if isinstance(data, dict) and data.get("ok") == 0:
+                    error_code = data.get("code", "unknown")
+                    _LOGGER.error("SetTargetTemperatures API hatası: code=%s", error_code)
+                    raise CosaAPIError(f"SetTargetTemperatures hatası: code={error_code}")
+                
                 _LOGGER.info("Hedef sıcaklıklar ayarlandı")
                 return True
                 
@@ -278,55 +339,62 @@ class CosaAPI:
             raise CosaAPIError(f"Bağlantı hatası: {err}") from err
 
 
-def parse_endpoint_data(user_info: dict[str, Any]) -> list[dict[str, Any]]:
-    """GetInfo yanıtından endpoint verilerini çıkar."""
-    endpoints = []
-    
-    if isinstance(user_info, dict):
-        # data.endpoints yapısı
-        if "data" in user_info and isinstance(user_info["data"], dict):
-            data = user_info["data"]
-            if "endpoints" in data and isinstance(data["endpoints"], list):
-                endpoints = data["endpoints"]
-            elif "endpoint" in data:
-                ep = data["endpoint"]
-                endpoints = ep if isinstance(ep, list) else [ep]
-        # endpoints doğrudan
-        elif "endpoints" in user_info and isinstance(user_info["endpoints"], list):
-            endpoints = user_info["endpoints"]
-        elif "endpoint" in user_info:
-            ep = user_info["endpoint"]
-            endpoints = ep if isinstance(ep, list) else [ep]
-    elif isinstance(user_info, list):
-        endpoints = user_info
-    
-    return endpoints
-
-
 def extract_endpoint_state(endpoint: dict[str, Any]) -> dict[str, Any]:
-    """Endpoint verisinden durum bilgilerini çıkar."""
-    target_temps = endpoint.get("targetTemperatures", {})
-    option = endpoint.get("option", "home")
-    mode = endpoint.get("mode", "manual")
+    """Endpoint verisinden durum bilgilerini çıkar.
     
-    if mode in ("auto", "schedule"):
-        current_target = target_temps.get("home")
+    API yanıt formatı:
+    {
+        "id": "...",
+        "name": "Evim",
+        "temperature": 26.5,
+        "humidity": 53.4,
+        "targetTemperature": 26.6,
+        "mode": "schedule",
+        "option": "sleep",
+        "operationMode": "heating",
+        "isConnected": true,
+        ...
+    }
+    """
+    mode = endpoint.get("mode", "manual")
+    option = endpoint.get("option", "home")
+    
+    # Sıcaklık hedefleri - detaylı bilgide farklı format
+    if "homeTemperature" in endpoint:
+        # Detaylı endpoint bilgisi
+        target_temps = {
+            "home": endpoint.get("homeTemperature", 20.0),
+            "away": endpoint.get("awayTemperature", 15.0),
+            "sleep": endpoint.get("sleepTemperature", 18.0),
+            "custom": endpoint.get("customTemperature", 20.0),
+        }
     else:
-        current_target = target_temps.get(option, target_temps.get("home"))
+        # Liste formatı - targetTemperature var
+        target_temps = {
+            "home": 20.0,
+            "away": 15.0,
+            "sleep": 18.0,
+            "custom": 20.0,
+        }
+    
+    # Mevcut hedef sıcaklık
+    current_target = endpoint.get("targetTemperature")
+    if current_target is None:
+        current_target = target_temps.get(option, 20.0)
+    
+    # combiState kontrolü
+    combi_state = endpoint.get("combiState", "off")
     
     return {
-        "endpoint_id": endpoint.get("_id") or endpoint.get("id") or endpoint.get("endpoint"),
+        "endpoint_id": endpoint.get("id") or endpoint.get("_id"),
         "name": endpoint.get("name", "COSA Termostat"),
         "temperature": endpoint.get("temperature"),
         "humidity": endpoint.get("humidity"),
         "target_temperature": current_target,
         "mode": mode,
         "option": option,
-        "combi_state": endpoint.get("combiState", "off"),
-        "target_temperatures": {
-            "home": target_temps.get("home", 20.0),
-            "away": target_temps.get("away", 15.0),
-            "sleep": target_temps.get("sleep", 18.0),
-            "custom": target_temps.get("custom", 20.0),
-        },
+        "combi_state": combi_state,
+        "is_connected": endpoint.get("isConnected", False),
+        "operation_mode": endpoint.get("operationMode", "heating"),
+        "target_temperatures": target_temps,
     }
