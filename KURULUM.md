@@ -149,5 +149,6 @@ Sorun yaşarsanız:
 
 ## Lisans
 
-Bu entegrasyon topluluk tarafından geliştirilmiştir ve açık kaynaklıdır.
+Bu entegrasyon ahamitd tarafından geliştirilmiştir ve açık kaynaklıdır.
+Herhangi bir telif ve sorularınız için https://t.me/ahamitd iletişime geçebilirsiniz.
 

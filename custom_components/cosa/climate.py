@@ -22,10 +22,33 @@ from .const import (
     DOMAIN, MIN_TEMP, MAX_TEMP, TEMP_STEP,
     MODE_MANUAL, MODE_AUTO, MODE_SCHEDULE,
     OPTION_HOME, OPTION_SLEEP, OPTION_AWAY, OPTION_CUSTOM, OPTION_FROZEN,
-    PRESET_HOME, PRESET_SLEEP, PRESET_AWAY, PRESET_CUSTOM, PRESET_AUTO, PRESET_SCHEDULE,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Türkçe Preset İsimleri
+PRESET_EVDE = "Evde"
+PRESET_UYKU = "Uyku"
+PRESET_DISARI = "Dışarı"
+PRESET_MANUEL = "Manuel"
+PRESET_OTOMATIK = "Otomatik"
+PRESET_HAFTALIK = "Haftalık"
+
+# API değerlerinden Türkçe preset'e dönüşüm
+OPTION_TO_PRESET = {
+    OPTION_HOME: PRESET_EVDE,
+    OPTION_SLEEP: PRESET_UYKU,
+    OPTION_AWAY: PRESET_DISARI,
+    OPTION_CUSTOM: PRESET_MANUEL,
+}
+
+# Türkçe preset'ten API değerine dönüşüm
+PRESET_TO_OPTION = {
+    PRESET_EVDE: OPTION_HOME,
+    PRESET_UYKU: OPTION_SLEEP,
+    PRESET_DISARI: OPTION_AWAY,
+    PRESET_MANUEL: OPTION_CUSTOM,
+}
 
 
 async def async_setup_entry(
@@ -45,7 +68,7 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
     _attr_name = None
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
-    _attr_preset_modes = [PRESET_HOME, PRESET_SLEEP, PRESET_AWAY, PRESET_CUSTOM, PRESET_AUTO, PRESET_SCHEDULE]
+    _attr_preset_modes = [PRESET_EVDE, PRESET_UYKU, PRESET_DISARI, PRESET_MANUEL, PRESET_OTOMATIK, PRESET_HAFTALIK]
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.PRESET_MODE
@@ -113,12 +136,44 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         option = self._endpoint.get("option")
         
         if mode == MODE_SCHEDULE:
-            return PRESET_SCHEDULE
+            return PRESET_HAFTALIK
         elif mode == MODE_AUTO:
-            return PRESET_AUTO
+            return PRESET_OTOMATIK
         elif mode == MODE_MANUAL:
-            return option
-        return option
+            return OPTION_TO_PRESET.get(option, PRESET_EVDE)
+        return OPTION_TO_PRESET.get(option, PRESET_EVDE)
+
+    @property
+    def icon(self) -> str:
+        """Mod ve duruma göre ikon döndür."""
+        combi_state = self._endpoint.get("combiState")
+        mode = self._endpoint.get("mode")
+        option = self._endpoint.get("option")
+        
+        # Isıtılıyorsa alev ikonu
+        if combi_state == "on":
+            return "mdi:fire"
+        
+        # Kapalıysa
+        if mode == MODE_MANUAL and option == OPTION_FROZEN:
+            return "mdi:snowflake"
+        
+        # Preset'e göre ikon
+        if mode == MODE_SCHEDULE:
+            return "mdi:calendar-clock"  # Haftalık - takvim
+        elif mode == MODE_AUTO:
+            return "mdi:thermostat-auto"  # Otomatik
+        elif mode == MODE_MANUAL:
+            if option == OPTION_HOME:
+                return "mdi:home-thermometer"  # Evde
+            elif option == OPTION_SLEEP:
+                return "mdi:bed"  # Uyku
+            elif option == OPTION_AWAY:
+                return "mdi:exit-run"  # Dışarı
+            elif option == OPTION_CUSTOM:
+                return "mdi:tune"  # Manuel (ayar)
+        
+        return "mdi:thermostat"
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode == HVACMode.OFF:
@@ -127,12 +182,13 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             await self.coordinator.async_set_mode(MODE_MANUAL, OPTION_HOME)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
-        if preset_mode == PRESET_SCHEDULE:
+        if preset_mode == PRESET_HAFTALIK:
             await self.coordinator.async_set_mode(MODE_SCHEDULE)
-        elif preset_mode == PRESET_AUTO:
+        elif preset_mode == PRESET_OTOMATIK:
             await self.coordinator.async_set_mode(MODE_AUTO)
         else:
-            await self.coordinator.async_set_mode(MODE_MANUAL, preset_mode)
+            option = PRESET_TO_OPTION.get(preset_mode, OPTION_HOME)
+            await self.coordinator.async_set_mode(MODE_MANUAL, option)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         temperature = kwargs.get(ATTR_TEMPERATURE)
