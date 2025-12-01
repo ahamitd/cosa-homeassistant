@@ -27,12 +27,13 @@ async def async_setup_entry(
     coordinator = entry_data.get("coordinator")
     api = entry_data.get("api")
     endpoint_id = entry_data.get("endpoint_id")
+    token = entry_data.get("token")
     
     if not coordinator or not api or not endpoint_id:
         return
     
     entities = [
-        CosaChildLockSwitch(coordinator, config_entry, api, endpoint_id),
+        CosaChildLockSwitch(coordinator, config_entry, api, endpoint_id, token),
     ]
     
     async_add_entities(entities)
@@ -45,10 +46,11 @@ class CosaChildLockSwitch(CoordinatorEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
     _attr_icon = "mdi:lock-outline"
 
-    def __init__(self, coordinator, config_entry: ConfigEntry, api, endpoint_id: str) -> None:
+    def __init__(self, coordinator, config_entry: ConfigEntry, api, endpoint_id: str, token: str) -> None:
         super().__init__(coordinator)
         self._api = api
         self._endpoint_id = endpoint_id
+        self._token = token
         self._attr_unique_id = f"{DOMAIN}_{config_entry.entry_id}_child_lock"
         self._attr_name = "Çocuk Kilidi"
         self._attr_device_info = DeviceInfo(
@@ -68,7 +70,7 @@ class CosaChildLockSwitch(CoordinatorEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Çocuk kilidini aç."""
         try:
-            await self._api.set_child_lock(self._endpoint_id, True)
+            await self._api.set_child_lock(self._endpoint_id, True, self._token)
             await self.coordinator.async_request_refresh()
         except Exception as ex:
             _LOGGER.error("Çocuk kilidi açılamadı: %s", ex)
@@ -76,7 +78,7 @@ class CosaChildLockSwitch(CoordinatorEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Çocuk kilidini kapat."""
         try:
-            await self._api.set_child_lock(self._endpoint_id, False)
+            await self._api.set_child_lock(self._endpoint_id, False, self._token)
             await self.coordinator.async_request_refresh()
         except Exception as ex:
             _LOGGER.error("Çocuk kilidi kapatılamadı: %s", ex)

@@ -64,7 +64,7 @@ class CosaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 data={
                                     CONF_EMAIL: email,
                                     CONF_PASSWORD: password,
-                                    CONF_ENDPOINT_ID: endpoint.get("_id"),
+                                    CONF_ENDPOINT_ID: endpoint.get("id"),
                                 },
                             )
                         else:
@@ -99,7 +99,7 @@ class CosaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Seçilen endpoint'in ismini bul
             endpoint_name = "COSA"
             for ep in self._endpoints:
-                if ep.get("_id") == endpoint_id:
+                if ep.get("id") == endpoint_id:
                     endpoint_name = ep.get("name", "COSA")
                     break
             
@@ -114,7 +114,7 @@ class CosaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Endpoint seçeneklerini oluştur
         endpoint_options = {
-            ep.get("_id"): ep.get("name", f"Cihaz {i+1}")
+            ep.get("id"): ep.get("name", f"Cihaz {i+1}")
             for i, ep in enumerate(self._endpoints)
         }
 

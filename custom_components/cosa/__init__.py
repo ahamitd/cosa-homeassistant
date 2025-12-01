@@ -41,7 +41,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if not endpoints:
                 _LOGGER.error("Cihaz bulunamadı")
                 return False
-            endpoint_id = endpoints[0].get("_id")
+            endpoint_id = endpoints[0].get("id")
         
         # Detaylı bilgi al
         detail = await api.get_endpoint_detail(endpoint_id, token)
@@ -54,6 +54,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         
         hass.data[DOMAIN][entry.entry_id] = {
             "api": api,
+            "email": email,
+            "password": password,
             "token": token,
             "endpoint_id": endpoint_id,
             "device_name": detail.get("name", "COSA Termostat"),
