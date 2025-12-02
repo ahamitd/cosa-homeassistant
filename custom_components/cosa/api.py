@@ -157,8 +157,13 @@ class CosaAPI:
                 
                 
                 _LOGGER.debug("Rapor verisi alındı - keys: %s", list(data.keys()) if data else "None")
-                _LOGGER.debug("Rapor verisi - stats keys: %s", list(data.get("stats", {}).keys()) if data.get("stats") else "None")
-                _LOGGER.debug("Rapor verisi - summary keys: %s", list(data.get("summary", {}).keys()) if data.get("summary") else "None")
+                # report içindeki yapıyı kontrol et
+                report = data.get("report", {})
+                if report:
+                    _LOGGER.debug("Rapor verisi - report keys: %s", list(report.keys()) if isinstance(report, dict) else "list/other")
+                    if isinstance(report, dict):
+                        _LOGGER.debug("Rapor verisi - report.stats: %s", bool(report.get("stats")))
+                        _LOGGER.debug("Rapor verisi - report.summary: %s", bool(report.get("summary")))
                 return data
                 
         except aiohttp.ClientError:
@@ -302,8 +307,13 @@ class CosaAPI:
                 
                 
                 _LOGGER.debug("Rapor verisi alındı - keys: %s", list(data.keys()) if data else "None")
-                _LOGGER.debug("Rapor verisi - stats keys: %s", list(data.get("stats", {}).keys()) if data.get("stats") else "None")
-                _LOGGER.debug("Rapor verisi - summary keys: %s", list(data.get("summary", {}).keys()) if data.get("summary") else "None")
+                # report içindeki yapıyı kontrol et
+                report = data.get("report", {})
+                if report:
+                    _LOGGER.debug("Rapor verisi - report keys: %s", list(report.keys()) if isinstance(report, dict) else "list/other")
+                    if isinstance(report, dict):
+                        _LOGGER.debug("Rapor verisi - report.stats: %s", bool(report.get("stats")))
+                        _LOGGER.debug("Rapor verisi - report.summary: %s", bool(report.get("summary")))
                 return data
                 
         except aiohttp.ClientError as err:
