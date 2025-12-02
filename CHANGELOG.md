@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-12-02
+
+### Fixed
+- Rapor sensörleri artık doğru veriyi gösteriyor (API response yapısı düzeltildi)
+- Dış sıcaklık, dış nem ve hava durumu sensörleri düzeltildi
+- get_forecast ve get_reports API metodları düzeltildi
+
 ## [1.0.1] - 2025-12-02
 
 ### Added
@@ -21,17 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Açık Pencere Algılama Switch** - Açık pencere algılama özelliğini açıp kapama
 - **Kalibrasyon Number** - Sıcaklık kalibrasyonu (-5°C ile +5°C arası)
 - **Preset Sıcaklık Kontrolleri** - Evde, Dışarı, Uyku ve Manuel sıcaklıkları ayarlama
+- HACS ve Hassfest GitHub Actions eklendi
 
 ### Improved
 - Optimistik güncellemeler ile daha hızlı UI yanıtı
 - HVAC ve preset mod değişikliklerinde anlık görsel güncelleme
 - API isteklerinde daha iyi hata yönetimi
-- Kod optimizasyonları ve performans iyileştirmeleri
-
-### Fixed
-- UPDATE_INTERVAL import hatası düzeltildi
-- Coordinator metodları düzeltildi
-- openWindowEnable API parametresi düzeltildi
 
 ## [1.0.0] - 2024-01-01
 
@@ -45,11 +47,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic updates every 10 seconds
 - Config flow for easy setup
 - Turkish language support for configuration
-
-### Features
-- Full thermostat control via Home Assistant
-- Real-time temperature and humidity monitoring
-- Multiple preset modes for different scenarios
-- Secure authentication with COSA API
-- Automatic endpoint detection
-- Error handling and reconnection support
