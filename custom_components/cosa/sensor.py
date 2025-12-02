@@ -356,8 +356,10 @@ class CosaTotalRuntimeSensor(CosaReportBaseSensor):
     @property
     def native_value(self) -> float | None:
         runtimes = self._summary.get("runtimes", {})
-        total_seconds = runtimes.get("total", 0)
-        return round(total_seconds / 3600, 2) if total_seconds else 0
+        total_seconds = runtimes.get("total")
+        if total_seconds is None:
+            return None
+        return round(total_seconds / 3600, 2)
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -385,8 +387,10 @@ class CosaHomeRuntimeSensor(CosaReportBaseSensor):
     @property
     def native_value(self) -> float | None:
         runtimes = self._summary.get("runtimes", {})
-        seconds = runtimes.get("home", 0)
-        return round(seconds / 3600, 2) if seconds else 0
+        seconds = runtimes.get("home")
+        if seconds is None:
+            return None
+        return round(seconds / 3600, 2)
 
 
 class CosaSleepRuntimeSensor(CosaReportBaseSensor):
@@ -402,8 +406,10 @@ class CosaSleepRuntimeSensor(CosaReportBaseSensor):
     @property
     def native_value(self) -> float | None:
         runtimes = self._summary.get("runtimes", {})
-        seconds = runtimes.get("sleep", 0)
-        return round(seconds / 3600, 2) if seconds else 0
+        seconds = runtimes.get("sleep")
+        if seconds is None:
+            return None
+        return round(seconds / 3600, 2)
 
 
 class CosaAverageTemperatureSensor(CosaReportBaseSensor):

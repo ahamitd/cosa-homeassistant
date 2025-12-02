@@ -155,6 +155,8 @@ class CosaAPI:
                 if data.get("ok") == 0:
                     return {}
                 
+                
+                _LOGGER.debug("Rapor verisi alındı: stats=%s, summary=%s", bool(data.get("stats")), bool(data.get("summary")))
                 return data
                 
         except aiohttp.ClientError:
@@ -296,6 +298,8 @@ class CosaAPI:
                     _LOGGER.warning("Rapor verisi alınamadı")
                     return {}
                 
+                
+                _LOGGER.debug("Rapor verisi alındı: stats=%s, summary=%s", bool(data.get("stats")), bool(data.get("summary")))
                 return data
                 
         except aiohttp.ClientError as err:
