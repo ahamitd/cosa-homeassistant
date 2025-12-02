@@ -156,15 +156,11 @@ class CosaAPI:
                     return {}
                 
                 
-                _LOGGER.debug("Rapor verisi alındı - keys: %s", list(data.keys()) if data else "None")
-                # report içindeki yapıyı kontrol et
+                # API yanıtı: {"report": {"data": [...], "stats": {...}, "summary": {...}}, "ok": 1}
                 report = data.get("report", {})
-                if report:
-                    _LOGGER.debug("Rapor verisi - report keys: %s", list(report.keys()) if isinstance(report, dict) else "list/other")
-                    if isinstance(report, dict):
-                        _LOGGER.debug("Rapor verisi - report.stats: %s", bool(report.get("stats")))
-                        _LOGGER.debug("Rapor verisi - report.summary: %s", bool(report.get("summary")))
-                return data
+                _LOGGER.debug("Rapor verisi alındı - stats: %s, summary: %s", 
+                    bool(report.get("stats")), bool(report.get("summary")))
+                return report
                 
         except aiohttp.ClientError:
             return {}
@@ -306,15 +302,11 @@ class CosaAPI:
                     return {}
                 
                 
-                _LOGGER.debug("Rapor verisi alındı - keys: %s", list(data.keys()) if data else "None")
-                # report içindeki yapıyı kontrol et
+                # API yanıtı: {"report": {"data": [...], "stats": {...}, "summary": {...}}, "ok": 1}
                 report = data.get("report", {})
-                if report:
-                    _LOGGER.debug("Rapor verisi - report keys: %s", list(report.keys()) if isinstance(report, dict) else "list/other")
-                    if isinstance(report, dict):
-                        _LOGGER.debug("Rapor verisi - report.stats: %s", bool(report.get("stats")))
-                        _LOGGER.debug("Rapor verisi - report.summary: %s", bool(report.get("summary")))
-                return data
+                _LOGGER.debug("Rapor verisi alındı - stats: %s, summary: %s", 
+                    bool(report.get("stats")), bool(report.get("summary")))
+                return report
                 
         except aiohttp.ClientError as err:
             _LOGGER.warning("Rapor verisi alınamadı: %s", err)
