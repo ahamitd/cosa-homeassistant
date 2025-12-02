@@ -189,20 +189,6 @@ Ana termostat kontrolü - sıcaklık ayarlama, mod değiştirme, açma/kapama
 
 ---
 
-## 📡 Teknik Bilgiler
-
-### API Endpoint'leri
-
-| Endpoint | Açıklama |
-|----------|----------|
-| `/api/users/login` | Kullanıcı girişi |
-| `/api/endpoints/getEndpoints` | Cihaz listesi |
-| `/api/endpoints/getEndpoint` | Cihaz detayları |
-| `/api/endpoints/setMode` | Mod değiştirme |
-| `/api/endpoints/setTargetTemperatures` | Sıcaklık ayarlama |
-| `/api/endpoints/setCombiSettings` | Kombi ayarları |
-| `/api/places/getForecast` | Hava durumu |
-
 ### Güncelleme Aralığı
 Entegrasyon her **10 saniyede** bir COSA API'sinden veri çeker.
 
