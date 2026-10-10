@@ -33,6 +33,8 @@ HEADER_PROVIDER = "cosa"
 MODE_MANUAL = "manual"
 MODE_AUTO = "auto"
 MODE_SCHEDULE = "schedule"
+MODE_TURBO = "turbo"
+MODE_VENTILATION = "ventilation"
 
 # Option Değerleri
 OPTION_HOME = "home"

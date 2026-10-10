@@ -163,14 +163,20 @@ class CosaAPI:
             return {}
 
     async def set_mode(
-        self, endpoint_id: str, mode: str, option: Optional[str] = None, token: Optional[str] = None
+        self, endpoint_id: str, mode: str, option: Optional[str] = None,
+        duration: Optional[int] = None, rollback: Optional[dict[str, Any]] = None,
+        token: Optional[str] = None
     ) -> bool:
-        """Mod değiştir."""
+        """Mod değiştir (Turbo ve Havalandırma süreleri dahil)."""
         session = await self._get_session()
         url = f"{API_BASE_URL}{ENDPOINT_SET_MODE}"
         payload: dict[str, Any] = {"endpoint": endpoint_id, "mode": mode}
         if option:
             payload["option"] = option
+        if duration is not None:
+            payload["duration"] = int(duration)
+        if rollback:
+            payload["rollback"] = rollback
         
         _LOGGER.debug("set_mode payload: %s", payload)
         

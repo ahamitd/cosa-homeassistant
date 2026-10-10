@@ -21,7 +21,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN, MIN_TEMP, MAX_TEMP, TEMP_STEP,
-    MODE_MANUAL, MODE_AUTO, MODE_SCHEDULE,
+    MODE_MANUAL, MODE_AUTO, MODE_SCHEDULE, MODE_TURBO, MODE_VENTILATION,
     OPTION_HOME, OPTION_SLEEP, OPTION_AWAY, OPTION_CUSTOM, OPTION_FROZEN,
 )
 
@@ -162,9 +162,12 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def hvac_action(self) -> HVACAction:
+        mode = self._endpoint.get("mode")
         combi_state = self._endpoint.get("combiState")
-        if combi_state == "on":
+        if mode == MODE_TURBO or combi_state == "on":
             return HVACAction.HEATING
+        elif mode == MODE_VENTILATION:
+            return HVACAction.OFF
         return HVACAction.IDLE
 
     @property
@@ -206,6 +209,12 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             return "mdi:snowflake"
         if mode == MODE_MANUAL and option == OPTION_FROZEN:
             return "mdi:snowflake"
+        
+        # Turbo veya havalandırma aktifse öncelikli ikon
+        if mode == MODE_TURBO:
+            return "mdi:fire"
+        elif mode == MODE_VENTILATION:
+            return "mdi:window-open-variant"
         
         # Aktif profile göre dinamik ikon
         if option == OPTION_AWAY:
@@ -369,6 +378,8 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             MODE_MANUAL: "Manuel",
             MODE_AUTO: "Otomatik",
             MODE_SCHEDULE: "Haftalık Program",
+            MODE_TURBO: "Turbo Isıtma",
+            MODE_VENTILATION: "Havalandırma",
         }
         
         return {
@@ -379,6 +390,10 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             "is_away": option == OPTION_AWAY,
             "is_auto": mode == MODE_AUTO,
             "is_scheduled": mode == MODE_SCHEDULE,
+            "is_turbo": mode == MODE_TURBO,
+            "is_ventilation": mode == MODE_VENTILATION,
+            "rollback_at": self._endpoint.get("rollbackAt"),
+            "rollback": self._endpoint.get("rollback"),
             "combi_state": self._endpoint.get("combiState"),
             "home_temperature": self._endpoint.get("homeTemperature"),
             "away_temperature": self._endpoint.get("awayTemperature"),
