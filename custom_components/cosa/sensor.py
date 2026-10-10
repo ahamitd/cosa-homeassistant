@@ -22,7 +22,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, BATTERY_LEVELS, WEATHER_ICONS, WEATHER_TRANSLATIONS
+from .const import DOMAIN, BATTERY_LEVELS, WEATHER_ICONS, WEATHER_TRANSLATIONS, OPTION_HOME, OPTION_AWAY, OPTION_SLEEP, OPTION_CUSTOM
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -134,6 +134,15 @@ class CosaTargetTemperatureSensor(CosaBaseSensor):
 
     @property
     def native_value(self) -> float | None:
+        option = self._endpoint.get("option")
+        if option == OPTION_HOME:
+            return self._endpoint.get("homeTemperature")
+        elif option == OPTION_AWAY:
+            return self._endpoint.get("awayTemperature")
+        elif option == OPTION_SLEEP:
+            return self._endpoint.get("sleepTemperature")
+        elif option == OPTION_CUSTOM:
+            return self._endpoint.get("customTemperature")
         return self._endpoint.get("targetTemperature")
 
 
