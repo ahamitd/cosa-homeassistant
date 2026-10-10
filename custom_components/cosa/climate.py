@@ -133,22 +133,18 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         if self._optimistic_target_temp is not None:
             return self._optimistic_target_temp
         
-        # Mevcut mod ve option'a göre doğru sıcaklığı döndür
-        mode = self._endpoint.get("mode")
+        # Cihaz ister manual, auto veya schedule modunda olsun,
+        # kombinin referans aldığı hedef o anki aktif profilin (option) sıcaklığıdır.
         option = self._endpoint.get("option")
+        if option == OPTION_HOME:
+            return self._endpoint.get("homeTemperature")
+        elif option == OPTION_AWAY:
+            return self._endpoint.get("awayTemperature")
+        elif option == OPTION_SLEEP:
+            return self._endpoint.get("sleepTemperature")
+        elif option == OPTION_CUSTOM:
+            return self._endpoint.get("customTemperature")
         
-        # Manuel moddaysa option'a göre sıcaklık
-        if mode == MODE_MANUAL:
-            if option == OPTION_HOME:
-                return self._endpoint.get("homeTemperature")
-            elif option == OPTION_AWAY:
-                return self._endpoint.get("awayTemperature")
-            elif option == OPTION_SLEEP:
-                return self._endpoint.get("sleepTemperature")
-            elif option == OPTION_CUSTOM:
-                return self._endpoint.get("customTemperature")
-        
-        # Diğer modlarda targetTemperature kullan
         return self._endpoint.get("targetTemperature")
 
     @property
@@ -180,6 +176,12 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         mode = self._endpoint.get("mode")
         option = self._endpoint.get("option")
         
+        # Otomatik veya Haftalık modda dahi olsak, cihaz aktif olarak dışarıda
+        # veya uyku profilindeyse durumun arayüze ve otomasyonlara doğru yansıması için
+        # aktif profili önceliklendir.
+        if option in (OPTION_AWAY, OPTION_SLEEP):
+            return OPTION_TO_PRESET.get(option, PRESET_EVDE)
+        
         if mode == MODE_SCHEDULE:
             return PRESET_HAFTALIK
         elif mode == MODE_AUTO:
@@ -190,7 +192,7 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def icon(self) -> str:
-        """Mod ve duruma göre ikon döndür."""
+        """Mod ve duruma göre dinamik ikon döndür."""
         combi_state = self._endpoint.get("combiState")
         mode = self._endpoint.get("mode")
         option = self._endpoint.get("option")
@@ -205,7 +207,18 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         if mode == MODE_MANUAL and option == OPTION_FROZEN:
             return "mdi:snowflake"
         
-        # Preset'e göre ikon
+        # Aktif profile göre dinamik ikon
+        if option == OPTION_AWAY:
+            return "mdi:walk"
+        elif option == OPTION_SLEEP:
+            return "mdi:bed"
+        elif mode == MODE_SCHEDULE:
+            return "mdi:calendar-clock"
+        elif mode == MODE_AUTO:
+            return "mdi:thermostat-auto"
+        elif option == OPTION_HOME:
+            return "mdi:home"
+        
         current_preset = self.preset_mode
         return PRESET_ICONS.get(current_preset, "mdi:thermostat")
 
@@ -345,13 +358,27 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         forecast_data = self._forecast.get("hourly", [{}])
         current_weather = forecast_data[0] if forecast_data else {}
         
+        mode = self._endpoint.get("mode")
+        option = self._endpoint.get("option")
+        
         # Preset ikonu bilgisini ekle
         current_preset = self.preset_mode
         preset_icon = PRESET_ICONS.get(current_preset, "mdi:thermostat")
         
+        mode_names = {
+            MODE_MANUAL: "Manuel",
+            MODE_AUTO: "Otomatik",
+            MODE_SCHEDULE: "Haftalık Program",
+        }
+        
         return {
-            "mode": self._endpoint.get("mode"),
-            "option": self._endpoint.get("option"),
+            "mode": mode,
+            "mode_name": mode_names.get(mode, mode),
+            "option": option,
+            "option_name": OPTION_TO_PRESET.get(option, option),
+            "is_away": option == OPTION_AWAY,
+            "is_auto": mode == MODE_AUTO,
+            "is_scheduled": mode == MODE_SCHEDULE,
             "combi_state": self._endpoint.get("combiState"),
             "home_temperature": self._endpoint.get("homeTemperature"),
             "away_temperature": self._endpoint.get("awayTemperature"),
