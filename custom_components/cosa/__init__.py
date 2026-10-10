@@ -14,7 +14,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import CosaAPI, CosaAPIError
-from .const import DOMAIN
+from .const import DOMAIN, MODE_AUTO, MODE_TURBO, MODE_VENTILATION, OPTION_HOME
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,10 +94,57 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator._get_current_calibration = _get_current_calibration
     coordinator._is_open_window_enabled = _is_open_window_enabled
     
-    async def async_set_mode(mode: str, option: Optional[str] = None) -> bool:
+    async def async_set_mode(
+        mode: str, option: Optional[str] = None,
+        duration: Optional[int] = None, rollback: Optional[dict[str, Any]] = None
+    ) -> bool:
         """Mod değiştir."""
-        result = await api.set_mode(endpoint_id, mode, option, token)
+        result = await api.set_mode(endpoint_id, mode, option, duration, rollback, token)
         if result:
+            await coordinator.async_request_refresh()
+        return result
+
+    async def async_set_turbo(duration: int = 20) -> bool:
+        """Turbo ısıtma modunu süreli başlat."""
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        current_mode = endpoint.get("mode", MODE_AUTO)
+        current_option = endpoint.get("option", OPTION_HOME)
+        if current_mode in (MODE_TURBO, MODE_VENTILATION):
+            rollback = endpoint.get("rollback", {"mode": MODE_AUTO, "option": current_option})
+        else:
+            rollback = {"mode": current_mode, "option": current_option}
+        
+        result = await api.set_mode(endpoint_id, MODE_TURBO, duration=duration, rollback=rollback, token=token)
+        if result:
+            await asyncio.sleep(1)
+            await coordinator.async_request_refresh()
+        return result
+
+    async def async_set_ventilation(duration: int = 15) -> bool:
+        """Havalandırma (kapatma) modunu süreli başlat."""
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        current_mode = endpoint.get("mode", MODE_AUTO)
+        current_option = endpoint.get("option", OPTION_HOME)
+        if current_mode in (MODE_TURBO, MODE_VENTILATION):
+            rollback = endpoint.get("rollback", {"mode": MODE_AUTO, "option": current_option})
+        else:
+            rollback = {"mode": current_mode, "option": current_option}
+        
+        result = await api.set_mode(endpoint_id, MODE_VENTILATION, duration=duration, rollback=rollback, token=token)
+        if result:
+            await asyncio.sleep(1)
+            await coordinator.async_request_refresh()
+        return result
+
+    async def async_cancel_timer_mode() -> bool:
+        """Turbo veya havalandırma modunu iptal edip rollback moduna dön."""
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        rollback = endpoint.get("rollback", {})
+        target_mode = rollback.get("mode", MODE_AUTO)
+        target_option = rollback.get("option")
+        result = await api.set_mode(endpoint_id, target_mode, option=target_option, token=token)
+        if result:
+            await asyncio.sleep(1)
             await coordinator.async_request_refresh()
         return result
     
@@ -171,6 +218,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return result
     
     coordinator.async_set_mode = async_set_mode
+    coordinator.async_set_turbo = async_set_turbo
+    coordinator.async_set_ventilation = async_set_ventilation
+    coordinator.async_cancel_timer_mode = async_cancel_timer_mode
     coordinator.async_set_temperatures = async_set_temperatures
     coordinator.async_set_preset_temperature = async_set_preset_temperature
     coordinator.async_set_open_window = async_set_open_window
@@ -182,6 +232,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "token": token,
     }
     
+    
+    # Servisleri kaydet (set_turbo, set_ventilation, cancel_timer)
+    if not hass.services.has_service(DOMAIN, "set_turbo"):
+        async def handle_set_turbo(call):
+            duration = call.data.get("duration", 20)
+            for entry_data in hass.data[DOMAIN].values():
+                c = entry_data.get("coordinator")
+                if c and hasattr(c, "async_set_turbo"):
+                    await c.async_set_turbo(duration)
+        hass.services.async_register(DOMAIN, "set_turbo", handle_set_turbo)
+
+    if not hass.services.has_service(DOMAIN, "set_ventilation"):
+        async def handle_set_ventilation(call):
+            duration = call.data.get("duration", 15)
+            for entry_data in hass.data[DOMAIN].values():
+                c = entry_data.get("coordinator")
+                if c and hasattr(c, "async_set_ventilation"):
+                    await c.async_set_ventilation(duration)
+        hass.services.async_register(DOMAIN, "set_ventilation", handle_set_ventilation)
+
+    if not hass.services.has_service(DOMAIN, "cancel_timer"):
+        async def handle_cancel_timer(call):
+            for entry_data in hass.data[DOMAIN].values():
+                c = entry_data.get("coordinator")
+                if c and hasattr(c, "async_cancel_timer_mode"):
+                    await c.async_cancel_timer_mode()
+        hass.services.async_register(DOMAIN, "cancel_timer", handle_cancel_timer)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
     return True

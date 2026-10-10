@@ -1,0 +1,35 @@
+set_turbo:
+  name: Turbo Isıtma Başlat
+  description: Belirtilen dakika boyunca kombiyi tam kapasite ısıtmaya alır, süre bitince otomatik eski moduna döner.
+  fields:
+    duration:
+      name: Süre (Dakika)
+      description: Turbo ısıtmanın çalışacağı süre (varsayılan 20 dakika).
+      required: false
+      default: 20
+      selector:
+        number:
+          min: 5
+          max: 180
+          step: 5
+          unit_of_measurement: min
+
+set_ventilation:
+  name: Havalandırma (Kapalı) Başlat
+  description: Belirtilen dakika boyunca ısıtmayı durdurur (kombiyi kapatır), süre bitince otomatik eski moduna döner.
+  fields:
+    duration:
+      name: Süre (Dakika)
+      description: Isıtmanın kapalı kalacağı süre (varsayılan 15 dakika).
+      required: false
+      default: 15
+      selector:
+        number:
+          min: 5
+          max: 180
+          step: 5
+          unit_of_measurement: min
+
+cancel_timer:
+  name: Süreli Modu İptal Et
+  description: Aktif olan Turbo veya Havalandırma modunu derhal sonlandırarak sistemi önceki normal çalışma moduna döndürür.
