@@ -33,3 +33,30 @@ set_ventilation:
 cancel_timer:
   name: Süreli Modu İptal Et
   description: Aktif olan Turbo veya Havalandırma modunu derhal sonlandırarak sistemi önceki normal çalışma moduna döndürür.
+
+set_combi_range:
+  name: Kombi Çalışma ve Durma Aralığını Ayarla
+  description: Kombinin hedef sıcaklığa göre devreye girme (çalışma) ve devreden çıkma (durma) tolerans aralıklarını (histerezis) belirler.
+  fields:
+    work_range:
+      name: Çalışma Aralığı (°C)
+      description: Hedef sıcaklığın kaç derece altına inildiğinde kombinin devreye gireceği (varsayılan 0.1°C).
+      required: false
+      default: 0.1
+      selector:
+        number:
+          min: 0.0
+          max: 2.0
+          step: 0.1
+          unit_of_measurement: "°C"
+    stop_range:
+      name: Durma Aralığı (°C)
+      description: Hedef sıcaklığın kaç derece üstüne çıkıldığında kombinin devreden çıkacağı (varsayılan 0.2°C).
+      required: false
+      default: 0.2
+      selector:
+        number:
+          min: 0.0
+          max: 2.0
+          step: 0.1
+          unit_of_measurement: "°C"

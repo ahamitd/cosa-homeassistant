@@ -40,6 +40,8 @@ async def async_setup_entry(
         CosaAwayTemperatureNumber(coordinator, config_entry),
         CosaSleepTemperatureNumber(coordinator, config_entry),
         CosaCustomTemperatureNumber(coordinator, config_entry),
+        CosaCombiWorkRangeNumber(coordinator, config_entry),
+        CosaCombiStopRangeNumber(coordinator, config_entry),
     ]
     
     async_add_entities(entities)
@@ -196,3 +198,119 @@ class CosaCustomTemperatureNumber(CosaTemperatureNumberBase):
         super().__init__(coordinator, config_entry)
         self._attr_unique_id = f"{DOMAIN}_{config_entry.entry_id}_custom_temperature"
         self._attr_name = "Özel Sıcaklık"
+
+
+class CosaCombiWorkRangeNumber(CoordinatorEntity, NumberEntity):
+    """Kombi Çalışma Aralığı (pidWindowLow) Number Entity."""
+
+    _attr_has_entity_name = True
+    _attr_native_min_value = 0.0
+    _attr_native_max_value = 2.0
+    _attr_native_step = 0.1
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_mode = NumberMode.SLIDER
+    _attr_icon = "mdi:radiator"
+
+    def __init__(self, coordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{config_entry.entry_id}_combi_work_range"
+        self._attr_name = "Kombi Çalışma Aralığı"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, config_entry.entry_id)},
+        )
+        self._optimistic_value: float | None = None
+
+    @property
+    def _endpoint(self) -> dict:
+        if self.coordinator.data:
+            return self.coordinator.data.get("endpoint", {})
+        return {}
+
+    @property
+    def native_value(self) -> float | None:
+        if self._optimistic_value is not None:
+            return self._optimistic_value
+        val = self._endpoint.get("pidWindowLow")
+        if val is None:
+            val = self._endpoint.get("combiSettings", {}).get("pidWindowLow", 0.1)
+        return float(val) if val is not None else 0.1
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        real_value = self._endpoint.get("pidWindowLow")
+        if real_value is None:
+            real_value = self._endpoint.get("combiSettings", {}).get("pidWindowLow", 0.1)
+        if self._optimistic_value is not None and real_value is not None:
+            if abs(float(real_value) - self._optimistic_value) < 0.05:
+                self._optimistic_value = None
+        self.async_write_ha_state()
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Çalışma aralığını ayarla."""
+        self._optimistic_value = value
+        self.async_write_ha_state()
+        high = self._endpoint.get("pidWindowHigh")
+        if high is None:
+            high = self._endpoint.get("combiSettings", {}).get("pidWindowHigh", 0.2)
+        result = await self.coordinator.async_set_combi_range(value, float(high or 0.2))
+        if not result:
+            self._optimistic_value = None
+            self.async_write_ha_state()
+
+
+class CosaCombiStopRangeNumber(CoordinatorEntity, NumberEntity):
+    """Kombi Durma Aralığı (pidWindowHigh) Number Entity."""
+
+    _attr_has_entity_name = True
+    _attr_native_min_value = 0.0
+    _attr_native_max_value = 2.0
+    _attr_native_step = 0.1
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_mode = NumberMode.SLIDER
+    _attr_icon = "mdi:radiator-disabled"
+
+    def __init__(self, coordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{config_entry.entry_id}_combi_stop_range"
+        self._attr_name = "Kombi Durma Aralığı"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, config_entry.entry_id)},
+        )
+        self._optimistic_value: float | None = None
+
+    @property
+    def _endpoint(self) -> dict:
+        if self.coordinator.data:
+            return self.coordinator.data.get("endpoint", {})
+        return {}
+
+    @property
+    def native_value(self) -> float | None:
+        if self._optimistic_value is not None:
+            return self._optimistic_value
+        val = self._endpoint.get("pidWindowHigh")
+        if val is None:
+            val = self._endpoint.get("combiSettings", {}).get("pidWindowHigh", 0.2)
+        return float(val) if val is not None else 0.2
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        real_value = self._endpoint.get("pidWindowHigh")
+        if real_value is None:
+            real_value = self._endpoint.get("combiSettings", {}).get("pidWindowHigh", 0.2)
+        if self._optimistic_value is not None and real_value is not None:
+            if abs(float(real_value) - self._optimistic_value) < 0.05:
+                self._optimistic_value = None
+        self.async_write_ha_state()
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Durma aralığını ayarla."""
+        self._optimistic_value = value
+        self.async_write_ha_state()
+        low = self._endpoint.get("pidWindowLow")
+        if low is None:
+            low = self._endpoint.get("combiSettings", {}).get("pidWindowLow", 0.1)
+        result = await self.coordinator.async_set_combi_range(float(low or 0.1), value)
+        if not result:
+            self._optimistic_value = None
+            self.async_write_ha_state()

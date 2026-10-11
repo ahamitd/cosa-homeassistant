@@ -116,12 +116,51 @@
       "open_window": {
         "name": "Açık Pencere Algılama"
       }
+    },
+    "number": {
+      "calibration": {
+        "name": "Sıcaklık Kalibrasyonu"
+      },
+      "home_temperature": {
+        "name": "Evde Sıcaklığı"
+      },
+      "away_temperature": {
+        "name": "Dışarıda Sıcaklığı"
+      },
+      "sleep_temperature": {
+        "name": "Uyku Sıcaklığı"
+      },
+      "custom_temperature": {
+        "name": "Özel Sıcaklık"
+      },
+      "combi_work_range": {
+        "name": "Kombi Çalışma Aralığı"
+      },
+      "combi_stop_range": {
+        "name": "Kombi Durma Aralığı"
+      }
     }
   },
   "services": {
     "set_preset_mode": {
       "name": "Preset Modu Ayarla",
       "description": "Termostat preset modunu değiştirir"
+    },
+    "set_turbo": {
+      "name": "Turbo Isıtma Başlat",
+      "description": "Belirtilen dakika boyunca kombiyi tam kapasite ısıtmaya alır, süre bitince otomatik eski moduna döner"
+    },
+    "set_ventilation": {
+      "name": "Havalandırma Başlat",
+      "description": "Belirtilen dakika boyunca ısıtmayı durdurur, süre bitince otomatik eski moduna döner"
+    },
+    "cancel_timer": {
+      "name": "Süreli Modu İptal Et",
+      "description": "Aktif olan süreli modu (Turbo veya Havalandırma) sonlandırır"
+    },
+    "set_combi_range": {
+      "name": "Kombi Çalışma ve Durma Aralığını Ayarla",
+      "description": "Kombinin çalışma ve durma sıcaklık tolerans aralıklarını ayarlar"
     }
   }
 }

@@ -324,26 +324,18 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         self._optimistic_target_temp = temperature
         self.async_write_ha_state()
         
-        option = self._endpoint.get("option", OPTION_HOME)
-        
+        self._optimistic_preset = PRESET_MANUEL
+
+        # Kayıtlı mod preset sıcaklıklarını koru (Evdeyim, Uykudayım, Dışarıdayım ezilmez!)
         home = self._endpoint.get("homeTemperature", 21)
         away = self._endpoint.get("awayTemperature", 15)
         sleep = self._endpoint.get("sleepTemperature", 19)
-        custom = self._endpoint.get("customTemperature", 20)
-        
-        if option == OPTION_HOME:
-            home = temperature
-        elif option == OPTION_AWAY:
-            away = temperature
-        elif option == OPTION_SLEEP:
-            sleep = temperature
-        elif option == OPTION_CUSTOM:
-            custom = temperature
-        else:
-            home = temperature
+        # Stepper sadece o anlık (custom) sıcaklığı ayarlar
+        custom = temperature
         
         try:
             result = await self.coordinator.async_set_temperatures(home, away, sleep, custom)
+            await self.coordinator.async_set_mode(MODE_MANUAL, OPTION_CUSTOM)
             if not result:
                 # API başarısız ama timeout değilse temizle
                 _LOGGER.warning("Sıcaklık ayarı başarısız, optimistic değer korunuyor")
@@ -382,8 +374,16 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
             MODE_VENTILATION: "Havalandırma",
         }
         
+        domain_data = self.hass.data.get(DOMAIN, {})
+        timer_duration = getattr(self.coordinator, "last_timer_duration", None) or (domain_data.get("last_timer_duration") if isinstance(domain_data, dict) else None)
+        if mode not in (MODE_TURBO, MODE_VENTILATION):
+            timer_duration = None
+            if isinstance(domain_data, dict):
+                domain_data["last_timer_duration"] = None
+
         return {
             "mode": mode,
+            "timer_duration": timer_duration,
             "mode_name": mode_names.get(mode, mode),
             "option": option,
             "option_name": OPTION_TO_PRESET.get(option, option),
