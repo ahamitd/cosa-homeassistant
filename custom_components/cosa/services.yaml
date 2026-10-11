@@ -60,3 +60,11 @@ set_combi_range:
           max: 2.0
           step: 0.1
           unit_of_measurement: "°C"
+
+set_schedule:
+  name: Haftalık Program (Takvim) Moduna Geç
+  description: Cosa termostatı haftalık program/takvim moduna geçirir.
+
+set_auto:
+  name: Otomatik Moda Geç
+  description: Cosa termostatı otomatik plana geçirir.

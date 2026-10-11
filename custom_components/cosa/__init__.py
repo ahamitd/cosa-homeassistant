@@ -14,7 +14,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import CosaAPI, CosaAPIError
-from .const import DOMAIN, MODE_AUTO, MODE_TURBO, MODE_VENTILATION, OPTION_HOME
+from .const import DOMAIN, MODE_AUTO, MODE_SCHEDULE, MODE_TURBO, MODE_VENTILATION, OPTION_HOME
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -332,6 +332,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         cur_stop = float(stop_range) if stop_range is not None else float(endpoint.get("pidWindowHigh", 0.2))
                         await c.async_set_combi_range(cur_work, cur_stop)
         hass.services.async_register(DOMAIN, "set_combi_range", handle_set_combi_range)
+
+    if not hass.services.has_service(DOMAIN, "set_schedule"):
+        async def handle_set_schedule(call):
+            for entry_data in hass.data[DOMAIN].values():
+                if isinstance(entry_data, dict):
+                    c = entry_data.get("coordinator")
+                    if c and hasattr(c, "async_set_mode"):
+                        await c.async_set_mode(MODE_SCHEDULE)
+        hass.services.async_register(DOMAIN, "set_schedule", handle_set_schedule)
+
+    if not hass.services.has_service(DOMAIN, "set_auto"):
+        async def handle_set_auto(call):
+            for entry_data in hass.data[DOMAIN].values():
+                if isinstance(entry_data, dict):
+                    c = entry_data.get("coordinator")
+                    if c and hasattr(c, "async_set_mode"):
+                        await c.async_set_mode(MODE_AUTO)
+        hass.services.async_register(DOMAIN, "set_auto", handle_set_auto)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
