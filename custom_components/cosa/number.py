@@ -6,7 +6,7 @@ import logging
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -42,6 +42,7 @@ async def async_setup_entry(
         CosaCustomTemperatureNumber(coordinator, config_entry),
         CosaCombiWorkRangeNumber(coordinator, config_entry),
         CosaCombiStopRangeNumber(coordinator, config_entry),
+        CosaOpenWindowDurationNumber(coordinator, config_entry),
     ]
     
     async_add_entities(entities)
@@ -77,14 +78,23 @@ class CosaCalibrationNumber(CoordinatorEntity, NumberEntity):
     def native_value(self) -> float | None:
         if self._optimistic_value is not None:
             return self._optimistic_value
-        return self._endpoint.get("calibration", 0.0)
+        val = self._endpoint.get("calibration")
+        try:
+            return float(val) if val is not None else 0.0
+        except (ValueError, TypeError):
+            return 0.0
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Coordinator güncellemesini işle."""
-        real_value = self._endpoint.get("calibration", 0.0)
-        if self._optimistic_value is not None and abs(real_value - self._optimistic_value) < 0.05:
-            self._optimistic_value = None
+        val = self._endpoint.get("calibration")
+        try:
+            real_value = float(val) if val is not None else 0.0
+        except (ValueError, TypeError):
+            real_value = 0.0
+        if self._optimistic_value is not None:
+            if abs(real_value - self._optimistic_value) < 0.05:
+                self._optimistic_value = None
         self.async_write_ha_state()
 
     async def async_set_native_value(self, value: float) -> None:
@@ -127,12 +137,20 @@ class CosaTemperatureNumberBase(CoordinatorEntity, NumberEntity):
     def native_value(self) -> float | None:
         if self._optimistic_value is not None:
             return self._optimistic_value
-        return self._endpoint.get(self._temp_key)
+        val = self._endpoint.get(self._temp_key)
+        try:
+            return float(val) if val is not None else None
+        except (ValueError, TypeError):
+            return None
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Coordinator güncellemesini işle."""
-        real_value = self._endpoint.get(self._temp_key)
+        val = self._endpoint.get(self._temp_key)
+        try:
+            real_value = float(val) if val is not None else None
+        except (ValueError, TypeError):
+            real_value = None
         if self._optimistic_value is not None and real_value is not None:
             if abs(real_value - self._optimistic_value) < 0.25:
                 self._optimistic_value = None
@@ -311,6 +329,58 @@ class CosaCombiStopRangeNumber(CoordinatorEntity, NumberEntity):
         if low is None:
             low = self._endpoint.get("combiSettings", {}).get("pidWindowLow", 0.1)
         result = await self.coordinator.async_set_combi_range(float(low or 0.1), value)
+        if not result:
+            self._optimistic_value = None
+            self.async_write_ha_state()
+
+
+class CosaOpenWindowDurationNumber(CoordinatorEntity, NumberEntity):
+    """Açık Pencere Kapalı Kalma Süresi Number Entity (15 - 90 dk)."""
+
+    _attr_has_entity_name = True
+    _attr_native_min_value = 15
+    _attr_native_max_value = 90
+    _attr_native_step = 15
+    _attr_native_unit_of_measurement = UnitOfTime.MINUTES
+    _attr_mode = NumberMode.SLIDER
+    _attr_icon = "mdi:timer-sand"
+
+    def __init__(self, coordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{config_entry.entry_id}_open_window_duration"
+        self._attr_name = "Açık Pencere Süresi"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, config_entry.entry_id)},
+        )
+        self._optimistic_value: int | None = None
+
+    @property
+    def _endpoint(self) -> dict:
+        if self.coordinator.data:
+            return self.coordinator.data.get("endpoint", {})
+        return {}
+
+    @property
+    def native_value(self) -> int | None:
+        if self._optimistic_value is not None:
+            return self._optimistic_value
+        val = self._endpoint.get("openWindowDuration")
+        return int(val) if val is not None else 15
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        real_value = self._endpoint.get("openWindowDuration")
+        if self._optimistic_value is not None and real_value is not None:
+            if int(real_value) == self._optimistic_value:
+                self._optimistic_value = None
+        self.async_write_ha_state()
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Kapalı kalma süresini ayarla."""
+        val = int(value)
+        self._optimistic_value = val
+        self.async_write_ha_state()
+        result = await self.coordinator.async_set_open_window_duration(val)
         if not result:
             self._optimistic_value = None
             self.async_write_ha_state()

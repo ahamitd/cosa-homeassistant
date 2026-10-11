@@ -272,9 +272,9 @@ class CosaAPI:
 
     async def set_device_settings(
         self, endpoint_id: str, 
-        calibration: float,
+        calibration: Optional[float] = None,
         open_window_enable: Optional[bool] = None,
-        open_window_duration: int = 30,
+        open_window_duration: Optional[int] = None,
         token: Optional[str] = None
     ) -> bool:
         """Cihaz ayarlarını (kalibrasyon, açık pencere) ayarla."""
@@ -282,13 +282,13 @@ class CosaAPI:
         url = f"{API_BASE_URL}{ENDPOINT_SET_DEVICE_SETTINGS}"
         payload: dict[str, Any] = {
             "endpoint": endpoint_id,
-            "calibration": calibration,
         }
-        
+        if calibration is not None:
+            payload["calibration"] = round(float(calibration), 1)
         if open_window_enable is not None:
-            payload["openWindowEnable"] = open_window_enable
-            if open_window_enable:
-                payload["openWindowDuration"] = open_window_duration
+            payload["openWindowEnable"] = bool(open_window_enable)
+        if open_window_duration is not None:
+            payload["openWindowDuration"] = int(open_window_duration)
         
         _LOGGER.info("⚙️ Cihaz ayarları API isteği: %s", payload)
         

@@ -197,29 +197,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     async def async_set_open_window(enabled: bool) -> bool:
         """Açık pencere algılama özelliğini ayarla."""
-        calibration = _get_current_calibration()
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        calibration = endpoint.get("calibration", 0.0)
+        duration = endpoint.get("openWindowDuration", 15)
         result = await api.set_device_settings(
             endpoint_id, 
-            calibration, 
+            calibration=float(calibration), 
             open_window_enable=enabled,
-            open_window_duration=30,
+            open_window_duration=int(duration),
             token=token
         )
         if result:
+            await asyncio.sleep(1)
+            await coordinator.async_request_refresh()
+        return result
+
+    async def async_set_open_window_duration(duration: int) -> bool:
+        """Açık pencere kapalı kalma süresini ayarla."""
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        calibration = endpoint.get("calibration", 0.0)
+        enabled = endpoint.get("openWindowEnable", True)
+        result = await api.set_device_settings(
+            endpoint_id, 
+            calibration=float(calibration), 
+            open_window_enable=enabled,
+            open_window_duration=int(duration),
+            token=token
+        )
+        if result:
+            await asyncio.sleep(1)
             await coordinator.async_request_refresh()
         return result
     
     async def async_set_calibration(value: float) -> bool:
         """Kalibrasyonu ayarla."""
-        open_window_enabled = _is_open_window_enabled()
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        enabled = endpoint.get("openWindowEnable", True)
+        duration = endpoint.get("openWindowDuration", 15)
         result = await api.set_device_settings(
             endpoint_id, 
-            value, 
-            open_window_enable=open_window_enabled,
-            open_window_duration=30,
+            calibration=round(float(value), 1), 
+            open_window_enable=enabled,
+            open_window_duration=int(duration),
             token=token
         )
         if result:
+            await asyncio.sleep(1)
             await coordinator.async_request_refresh()
         return result
     
@@ -249,6 +272,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return result
 
     coordinator.async_set_open_window = async_set_open_window
+    coordinator.async_set_open_window_duration = async_set_open_window_duration
     coordinator.async_set_calibration = async_set_calibration
     coordinator.async_set_combi_range = async_set_combi_range
     

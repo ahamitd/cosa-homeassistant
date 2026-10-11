@@ -138,6 +138,9 @@
       },
       "combi_stop_range": {
         "name": "Kombi Durma Aralığı"
+      },
+      "open_window_duration": {
+        "name": "Açık Pencere Süresi"
       }
     }
   },
