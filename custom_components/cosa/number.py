@@ -6,7 +6,7 @@ import logging
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature, UnitOfTime
+from homeassistant.const import EntityCategory, UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -52,6 +52,7 @@ class CosaCalibrationNumber(CoordinatorEntity, NumberEntity):
     """Sıcaklık Kalibrasyonu Number Entity."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_native_min_value = CALIBRATION_MIN
     _attr_native_max_value = CALIBRATION_MAX
     _attr_native_step = CALIBRATION_STEP
@@ -222,6 +223,7 @@ class CosaCombiWorkRangeNumber(CoordinatorEntity, NumberEntity):
     """Kombi Çalışma Aralığı (pidWindowLow) Number Entity."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_native_min_value = 0.0
     _attr_native_max_value = 2.0
     _attr_native_step = 0.1
@@ -280,6 +282,7 @@ class CosaCombiStopRangeNumber(CoordinatorEntity, NumberEntity):
     """Kombi Durma Aralığı (pidWindowHigh) Number Entity."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_native_min_value = 0.0
     _attr_native_max_value = 2.0
     _attr_native_step = 0.1
@@ -338,6 +341,7 @@ class CosaOpenWindowDurationNumber(CoordinatorEntity, NumberEntity):
     """Açık Pencere Kapalı Kalma Süresi Number Entity (15 - 90 dk)."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_native_min_value = 15
     _attr_native_max_value = 90
     _attr_native_step = 15

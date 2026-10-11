@@ -351,6 +351,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         await c.async_set_mode(MODE_AUTO)
         hass.services.async_register(DOMAIN, "set_auto", handle_set_auto)
 
+    # Mevcut kayıtlı varlıkların kategorilerini otomatik güncelle (Kontroller, Yapılandırma, Tanılama ayrımı)
+    try:
+        from homeassistant.helpers import entity_registry as er
+        from homeassistant.const import EntityCategory
+        ent_reg = er.async_get(hass)
+        for reg_entry in list(ent_reg.entities.values()):
+            if reg_entry.config_entry_id == entry.entry_id:
+                uid = reg_entry.unique_id
+                target_cat = None
+                if any(k in uid for k in ("calibration", "combi_work_range", "combi_stop_range", "open_window_duration", "open_window_enable")):
+                    target_cat = EntityCategory.CONFIG
+                elif any(k in uid for k in ("battery", "rssi", "firmware", "connected")):
+                    target_cat = EntityCategory.DIAGNOSTIC
+                
+                if target_cat is not None and reg_entry.entity_category != target_cat:
+                    ent_reg.async_update_entity(reg_entry.entity_id, entity_category=target_cat)
+    except Exception as err:
+        _LOGGER.debug("Entity category migration check: %s", err)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
     return True

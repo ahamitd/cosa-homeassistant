@@ -1,0 +1,169 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "COSA Hesabı",
+        "description": "COSA hesap bilgilerinizi girin",
+        "data": {
+          "email": "E-posta",
+          "password": "Şifre"
+        }
+      },
+      "select_endpoint": {
+        "title": "Cihaz Seçimi",
+        "description": "Kontrol etmek istediğiniz cihazı seçin",
+        "data": {
+          "endpoint_id": "Cihaz"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Bağlantı kurulamadı",
+      "invalid_auth": "Geçersiz kullanıcı adı veya şifre",
+      "no_devices": "Hesabınızda cihaz bulunamadı",
+      "unknown": "Beklenmeyen hata"
+    },
+    "abort": {
+      "already_configured": "Cihaz zaten yapılandırılmış"
+    }
+  },
+  "entity": {
+    "climate": {
+      "cosa_thermostat": {
+        "name": "Termostat",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "home": "Evde",
+              "sleep": "Uyku",
+              "away": "Dışarı",
+              "eco": "Manuel",
+              "boost": "Otomatik",
+              "activity": "Haftalık"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "temperature": {
+        "name": "Oda Sıcaklığı"
+      },
+      "humidity": {
+        "name": "Nem"
+      },
+      "target_temperature": {
+        "name": "Hedef Sıcaklık"
+      },
+      "battery_voltage": {
+        "name": "Pil Voltajı"
+      },
+      "battery_percent": {
+        "name": "Pil Yüzdesi"
+      },
+      "rssi": {
+        "name": "Sinyal Gücü"
+      },
+      "combi_state": {
+        "name": "Kombi Durumu"
+      },
+      "mode": {
+        "name": "Mod"
+      },
+      "option": {
+        "name": "Seçenek"
+      },
+      "outdoor_temperature": {
+        "name": "Dış Sıcaklık"
+      },
+      "outdoor_humidity": {
+        "name": "Dış Nem"
+      },
+      "weather": {
+        "name": "Hava Durumu"
+      },
+      "home_temperature": {
+        "name": "Evde Sıcaklığı"
+      },
+      "away_temperature": {
+        "name": "Dışarıda Sıcaklığı"
+      },
+      "sleep_temperature": {
+        "name": "Uyku Sıcaklığı"
+      },
+      "custom_temperature": {
+        "name": "Özel Sıcaklık"
+      },
+      "firmware": {
+        "name": "Firmware Versiyonu"
+      },
+      "calibration": {
+        "name": "Kalibrasyon"
+      }
+    },
+    "binary_sensor": {
+      "connected": {
+        "name": "Bağlantı"
+      },
+      "heating": {
+        "name": "Isıtma"
+      },
+      "open_window": {
+        "name": "Açık Pencere"
+      }
+    },
+    "switch": {
+      "open_window": {
+        "name": "Açık Pencere Algılama"
+      }
+    },
+    "number": {
+      "calibration": {
+        "name": "Sıcaklık Kalibrasyonu"
+      },
+      "home_temperature": {
+        "name": "Evde Sıcaklığı"
+      },
+      "away_temperature": {
+        "name": "Dışarıda Sıcaklığı"
+      },
+      "sleep_temperature": {
+        "name": "Uyku Sıcaklığı"
+      },
+      "custom_temperature": {
+        "name": "Özel Sıcaklık"
+      },
+      "combi_work_range": {
+        "name": "Kombi Çalışma Aralığı"
+      },
+      "combi_stop_range": {
+        "name": "Kombi Durma Aralığı"
+      },
+      "open_window_duration": {
+        "name": "Açık Pencere Süresi"
+      }
+    }
+  },
+  "services": {
+    "set_preset_mode": {
+      "name": "Preset Modu Ayarla",
+      "description": "Termostat preset modunu değiştirir"
+    },
+    "set_turbo": {
+      "name": "Turbo Isıtma Başlat",
+      "description": "Belirtilen dakika boyunca kombiyi tam kapasite ısıtmaya alır, süre bitince otomatik eski moduna döner"
+    },
+    "set_ventilation": {
+      "name": "Havalandırma Başlat",
+      "description": "Belirtilen dakika boyunca ısıtmayı durdurur, süre bitince otomatik eski moduna döner"
+    },
+    "cancel_timer": {
+      "name": "Süreli Modu İptal Et",
+      "description": "Aktif olan süreli modu (Turbo veya Havalandırma) sonlandırır"
+    },
+    "set_combi_range": {
+      "name": "Kombi Çalışma ve Durma Aralığını Ayarla",
+      "description": "Kombinin çalışma ve durma sıcaklık tolerans aralıklarını ayarlar"
+    }
+  }
+}
