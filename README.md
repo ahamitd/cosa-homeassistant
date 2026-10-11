@@ -29,7 +29,7 @@ COSA akıllı termostatınızı Home Assistant üzerinden tam kontrol edin! Bu e
 | Otomatik | 🤖 | Otomatik mod |
 | Haftalık | 📅 | Haftalık program |
 
-### 📊 Sensörler (18 adet)
+### 📊 Sensörler (20+ adet)
 - Oda sıcaklığı ve nem
 - Dış hava sıcaklığı ve nem
 - Hava durumu (Türkçe: Güneşli, Bulutlu, Yağmurlu vb.)
@@ -40,10 +40,25 @@ COSA akıllı termostatınızı Home Assistant üzerinden tam kontrol edin! Bu e
 - Ve daha fazlası...
 
 ### 🔒 Ek Özellikler
-- Çocuk kilidi açma/kapama
-- Açık pencere algılama
+- Açık pencere algılama ve bekleme süresi ayarı
+- Kombi çalışma ve durma histerezis toleransları
 - Bağlantı durumu izleme
-- 10 saniyede bir otomatik güncelleme
+- 15 saniyede bir otomatik güncelleme
+
+---
+
+## 🚀 Servisler (Services)
+
+Entegrasyon, gelişmiş kontroller ve otomasyonlar için aşağıdaki servisleri sunar:
+
+| Servis | Açıklama | Parametreler |
+|--------|----------|--------------|
+| `cosa.set_turbo` | Süreli ısıtma (Turbo) veya havalandırma modunu başlatır | `duration` (1-180 dk), `temperature` (5-35°C), `mode` (turbo/ventilation) |
+| `cosa.set_ventilation` | Belirlenen süre boyunca havalandırma modunu etkinleştirir | `duration` (1-180 dk) |
+| `cosa.cancel_timer` | Aktif süreli modu iptal eder ve önceki çalışma moduna döner | - |
+| `cosa.set_combi_range` | Kombinin çalışma ve durma histerezis eşiklerini ayarlar | `work_range` (0.0-2.0°C), `stop_range` (0.0-2.0°C) |
+| `cosa.set_schedule` | Termostatı haftalık program/takvim moduna geçirir | - |
+| `cosa.set_auto` | Termostatı akıllı otomatik moda geçirir | - |
 
 ---
 
@@ -89,9 +104,13 @@ COSA akıllı termostatınızı Home Assistant üzerinden tam kontrol edin! Bu e
            ├── config_flow.py
            ├── const.py
            ├── manifest.json
+           ├── number.py
            ├── sensor.py
+           ├── services.yaml
            ├── strings.json
-           └── switch.py
+           ├── switch.py
+           └── translations/
+               └── tr.json
    ```
 
 3. Home Assistant'ı yeniden başlatın
@@ -120,45 +139,53 @@ Hesabınızda birden fazla cihaz varsa, kontrol etmek istediğiniz cihazı seçm
 ## 🎛️ Entity'ler
 
 ### Climate (1 adet)
-Ana termostat kontrolü - sıcaklık ayarlama, mod değiştirme, açma/kapama
+Ana termostat kontrolü - sıcaklık ayarlama, mod değiştirme (Evde, Uyku, Dışarı, Manuel, Otomatik, Haftalık), açma/kapama
 
-### Sensörler (18 adet)
+### Sayısal Varlıklar / Number (8 adet - Yapılandırma)
 
-| Sensör | Açıklama | Birim |
-|--------|----------|-------|
-| Oda Sıcaklığı | Mevcut oda sıcaklığı | °C |
-| Nem | Oda nem oranı | % |
-| Hedef Sıcaklık | Ayarlanan hedef sıcaklık | °C |
-| Pil Voltajı | Termostat pil voltajı | V |
-| Pil Seviyesi | Pil yüzdesi | % |
-| Sinyal Gücü | WiFi sinyal gücü | dBm |
-| Kombi Durumu | Açık/Kapalı | - |
-| Mod | Manuel/Otomatik/Haftalık | - |
-| Seçenek | Evde/Uyku/Dışarı/Manuel | - |
-| Dış Sıcaklık | Hava durumu sıcaklığı | °C |
-| Dış Nem | Hava durumu nemi | % |
-| Hava Durumu | Güneşli/Bulutlu/Yağmurlu vb. | - |
-| Evde Sıcaklığı | Ev modu hedef sıcaklığı | °C |
-| Dışarı Sıcaklığı | Dışarı modu hedef sıcaklığı | °C |
-| Uyku Sıcaklığı | Uyku modu hedef sıcaklığı | °C |
-| Manuel Sıcaklık | Manuel mod hedef sıcaklığı | °C |
-| Firmware | Cihaz yazılım versiyonu | - |
-| Kalibrasyon | Sıcaklık kalibrasyonu | °C |
+| Varlık | Açıklama | Aralık |
+|--------|----------|--------|
+| Evde Hedef Sıcaklığı | Ev modu hedef sıcaklığı | 15.0 - 28.0 °C |
+| Uyku Hedef Sıcaklığı | Uyku modu hedef sıcaklığı | 15.0 - 28.0 °C |
+| Dışarı Hedef Sıcaklığı | Dışarı modu hedef sıcaklığı | 5.0 - 25.0 °C |
+| Manuel Hedef Sıcaklığı | Manuel mod hedef sıcaklığı | 5.0 - 35.0 °C |
+| Kombi Çalışma Toleransı | Hedef sıcaklığın altına inildiğinde kombinin devreye girme eşiği | 0.0 - 2.0 °C |
+| Kombi Durma Toleransı | Hedef sıcaklığın üstüne çıkıldığında kombinin devreden çıkma eşiği | 0.0 - 2.0 °C |
+| Sıcaklık Kalibrasyonu | Cihaz sıcaklık ölçüm sapma düzeltmesi | -5.0 - +5.0 °C |
+| Açık Pencere Süresi | Havalandırma algılandığında bekleme süresi | 15 - 90 dk |
 
-### Binary Sensörler (4 adet)
-
-| Sensör | Açıklama |
-|--------|----------|
-| Bağlantı | Cihaz çevrimiçi mi? |
-| Isıtma | Kombi şu an ısıtıyor mu? |
-| Açık Pencere | Pencere açık algılandı mı? |
-| Çocuk Kilidi | Kilit aktif mi? |
-
-### Switch (1 adet)
+### Switch (1 adet - Yapılandırma)
 
 | Switch | Açıklama |
 |--------|----------|
-| Çocuk Kilidi | Çocuk kilidini aç/kapat |
+| Açık Pencere Algılama | Açık pencere korumasını aç/kapat |
+
+*(Not: Çocuk kilidi donanım desteğine göre climate varlığının özniteliklerinde takip edilebilir)*
+
+### Binary Sensörler (2 adet)
+
+| Sensör | Açıklama | Kategori |
+|--------|----------|----------|
+| Isıtma | Kombi şu an aktif ısıtıyor mu? | - |
+| Bağlantı | Cihaz bulut servisine bağlı mı? (`connectivity`) | Tanılama (Diagnostic) |
+
+### Sensörler (20+ adet)
+
+| Sensör | Açıklama | Birim | Kategori |
+|--------|----------|-------|----------|
+| Oda Sıcaklığı | Mevcut oda sıcaklığı | °C | - |
+| Nem | Oda nem oranı | % | - |
+| Hedef Sıcaklık | Ayarlanan hedef sıcaklık | °C | - |
+| Pil Voltajı | Termostat pil voltajı | V | Tanılama |
+| Pil Seviyesi | Pil yüzdesi | % | Tanılama |
+| Sinyal Gücü | WiFi sinyal gücü | dBm | Tanılama |
+| Kombi Durumu | Açık/Kapalı | - | - |
+| Mod | Manuel/Otomatik/Haftalık | - | - |
+| Seçenek | Evde/Uyku/Dışarı/Manuel | - | - |
+| Dış Sıcaklık | Dış hava sıcaklığı | °C | - |
+| Dış Nem | Dış hava nemi | % | - |
+| Hava Durumu | Güneşli/Bulutlu/Yağmurlu vb. | - | - |
+| Firmware | Cihaz yazılım versiyonu | - | Tanılama |
 
 ---
 
@@ -190,7 +217,7 @@ Ana termostat kontrolü - sıcaklık ayarlama, mod değiştirme, açma/kapama
 ---
 
 ### Güncelleme Aralığı
-Entegrasyon her **10 saniyede** bir COSA API'sinden veri çeker.
+Entegrasyon her **15 saniyede** bir COSA API'sinden veri çeker.
 
 ---
 
@@ -225,6 +252,7 @@ Katkılarınızı bekliyoruz! Lütfen [CONTRIBUTING.md](CONTRIBUTING.md) dosyas�
 
 ---
 
-**Geliştirici:** [@ahamitd](https://github.com/ahamitd)
+* **Geliştirici:** [@ahamitd](https://github.com/ahamitd)
+* **Katkıda Bulunan:** [@bselcuk](https://github.com/bselcuk)
 
 ⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
