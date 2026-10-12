@@ -18,6 +18,7 @@ from .const import (
     ENDPOINT_SET_TARGET_TEMPERATURES,
     ENDPOINT_GET_FORECAST,
     ENDPOINT_SET_DEVICE_SETTINGS,
+    ENDPOINT_SET_COMBI_SETTINGS,
     HEADER_USER_AGENT,
     HEADER_CONTENT_TYPE,
     HEADER_PROVIDER,
@@ -227,49 +228,31 @@ class CosaAPI:
 
     async def set_combi_settings(
         self, endpoint_id: str, 
-        child_lock: bool,
         combi_settings: Optional[dict] = None,
+        child_lock: Optional[bool] = None,
         token: Optional[str] = None
     ) -> bool:
-        """Kombi ayarlarını (çocuk kilidi, ısıtma, PID ayarları) ayarla."""
+        """Kombi ayarlarını (çalışma ve durma aralığı PID ayarları) ayarla."""
         session = await self._get_session()
         url = f"{API_BASE_URL}{ENDPOINT_SET_COMBI_SETTINGS}"
         
-        # combiSettings'ten cooling ve childLock'ı çıkar (API kabul etmiyor)
         settings = {}
         if combi_settings:
             for key, value in combi_settings.items():
                 if key not in ["cooling", "childLock"]:
                     settings[key] = value
         
-        # heating yoksa varsayılan true
         if "heating" not in settings:
             settings["heating"] = True
         
-        # childLock ayrı bir parametre olarak
         payload = {
             "endpoint": endpoint_id,
-            "childLock": child_lock,
             "combiSettings": settings
         }
+        if child_lock is not None:
+            payload["childLock"] = child_lock
         
-        _LOGGER.info("🔒 Çocuk kilidi API isteği: %s", payload)
-        
-        try:
-            async with session.post(
-                url, json=payload, headers=self._get_auth_headers(token),
-                timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
-            ) as response:
-                data = await response.json()
-                _LOGGER.info("✅ Çocuk kilidi API yanıtı: %s", data)
-                return data.get("ok") == 1
-                
-        except asyncio.TimeoutError:
-            _LOGGER.warning("⏱️ Çocuk kilidi API timeout")
-            return False
-        except aiohttp.ClientError as err:
-            _LOGGER.error("❌ Çocuk kilidi API hatası: %s", err)
-            return False
+        _LOGGER.info("⚙️ Kombi ayarları API isteği: %s", payload)
         
         try:
             async with session.post(
@@ -277,21 +260,21 @@ class CosaAPI:
                 timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
             ) as response:
                 data = await response.json()
-                _LOGGER.info("✅ Çocuk kilidi API yanıtı: %s", data)
+                _LOGGER.info("✅ Kombi ayarları API yanıtı: %s", data)
                 return data.get("ok") == 1
                 
         except asyncio.TimeoutError:
-            _LOGGER.warning("⏱️ Çocuk kilidi API timeout")
+            _LOGGER.warning("⏱️ Kombi ayarları API timeout")
             return False
         except aiohttp.ClientError as err:
-            _LOGGER.error("❌ Çocuk kilidi API hatası: %s", err)
+            _LOGGER.error("❌ Kombi ayarları API hatası: %s", err)
             return False
 
     async def set_device_settings(
         self, endpoint_id: str, 
-        calibration: float,
+        calibration: Optional[float] = None,
         open_window_enable: Optional[bool] = None,
-        open_window_duration: int = 30,
+        open_window_duration: Optional[int] = None,
         token: Optional[str] = None
     ) -> bool:
         """Cihaz ayarlarını (kalibrasyon, açık pencere) ayarla."""
@@ -299,13 +282,13 @@ class CosaAPI:
         url = f"{API_BASE_URL}{ENDPOINT_SET_DEVICE_SETTINGS}"
         payload: dict[str, Any] = {
             "endpoint": endpoint_id,
-            "calibration": calibration,
         }
-        
+        if calibration is not None:
+            payload["calibration"] = round(float(calibration), 1)
         if open_window_enable is not None:
-            payload["openWindowEnable"] = open_window_enable
-            if open_window_enable:
-                payload["openWindowDuration"] = open_window_duration
+            payload["openWindowEnable"] = bool(open_window_enable)
+        if open_window_duration is not None:
+            payload["openWindowDuration"] = int(open_window_duration)
         
         _LOGGER.info("⚙️ Cihaz ayarları API isteği: %s", payload)
         

@@ -14,7 +14,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import CosaAPI, CosaAPIError
-from .const import DOMAIN, MODE_AUTO, MODE_TURBO, MODE_VENTILATION, OPTION_HOME
+from .const import DOMAIN, MODE_AUTO, MODE_SCHEDULE, MODE_TURBO, MODE_VENTILATION, OPTION_HOME
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -116,6 +116,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         
         result = await api.set_mode(endpoint_id, MODE_TURBO, duration=duration, rollback=rollback, token=token)
         if result:
+            coordinator.last_timer_duration = int(duration)
+            coordinator.last_timer_mode = MODE_TURBO
             await asyncio.sleep(1)
             await coordinator.async_request_refresh()
         return result
@@ -132,6 +134,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         
         result = await api.set_mode(endpoint_id, MODE_VENTILATION, duration=duration, rollback=rollback, token=token)
         if result:
+            coordinator.last_timer_duration = int(duration)
+            coordinator.last_timer_mode = MODE_VENTILATION
             await asyncio.sleep(1)
             await coordinator.async_request_refresh()
         return result
@@ -144,6 +148,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         target_option = rollback.get("option")
         result = await api.set_mode(endpoint_id, target_mode, option=target_option, token=token)
         if result:
+            coordinator.last_timer_duration = None
+            coordinator.last_timer_mode = None
             await asyncio.sleep(1)
             await coordinator.async_request_refresh()
         return result
@@ -191,29 +197,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     async def async_set_open_window(enabled: bool) -> bool:
         """Açık pencere algılama özelliğini ayarla."""
-        calibration = _get_current_calibration()
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        calibration = endpoint.get("calibration", 0.0)
+        duration = endpoint.get("openWindowDuration", 15)
         result = await api.set_device_settings(
             endpoint_id, 
-            calibration, 
+            calibration=float(calibration), 
             open_window_enable=enabled,
-            open_window_duration=30,
+            open_window_duration=int(duration),
             token=token
         )
         if result:
+            await asyncio.sleep(1)
+            await coordinator.async_request_refresh()
+        return result
+
+    async def async_set_open_window_duration(duration: int) -> bool:
+        """Açık pencere kapalı kalma süresini ayarla."""
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        calibration = endpoint.get("calibration", 0.0)
+        enabled = endpoint.get("openWindowEnable", True)
+        result = await api.set_device_settings(
+            endpoint_id, 
+            calibration=float(calibration), 
+            open_window_enable=enabled,
+            open_window_duration=int(duration),
+            token=token
+        )
+        if result:
+            await asyncio.sleep(1)
             await coordinator.async_request_refresh()
         return result
     
     async def async_set_calibration(value: float) -> bool:
         """Kalibrasyonu ayarla."""
-        open_window_enabled = _is_open_window_enabled()
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        enabled = endpoint.get("openWindowEnable", True)
+        duration = endpoint.get("openWindowDuration", 15)
         result = await api.set_device_settings(
             endpoint_id, 
-            value, 
-            open_window_enable=open_window_enabled,
-            open_window_duration=30,
+            calibration=round(float(value), 1), 
+            open_window_enable=enabled,
+            open_window_duration=int(duration),
             token=token
         )
         if result:
+            await asyncio.sleep(1)
             await coordinator.async_request_refresh()
         return result
     
@@ -223,8 +252,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator.async_cancel_timer_mode = async_cancel_timer_mode
     coordinator.async_set_temperatures = async_set_temperatures
     coordinator.async_set_preset_temperature = async_set_preset_temperature
+    async def async_set_combi_range(pid_window_low: float, pid_window_high: float) -> bool:
+        """Kombi çalışma ve durma aralıklarını ayarla."""
+        endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
+        combi_settings = dict(endpoint.get("combiSettings", {}))
+        combi_settings["pidWindowLow"] = round(float(pid_window_low), 2)
+        combi_settings["pidWindowHigh"] = round(float(pid_window_high), 2)
+        if "heating" not in combi_settings:
+            combi_settings["heating"] = True
+        
+        result = await api.set_combi_settings(
+            endpoint_id,
+            combi_settings=combi_settings,
+            token=token
+        )
+        if result:
+            await asyncio.sleep(1)
+            await coordinator.async_request_refresh()
+        return result
+
     coordinator.async_set_open_window = async_set_open_window
+    coordinator.async_set_open_window_duration = async_set_open_window_duration
     coordinator.async_set_calibration = async_set_calibration
+    coordinator.async_set_combi_range = async_set_combi_range
     
     hass.data[DOMAIN][entry.entry_id] = {
         "api": api,
@@ -233,32 +283,92 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
     
     
-    # Servisleri kaydet (set_turbo, set_ventilation, cancel_timer)
+    # Servisleri kaydet (set_turbo, set_ventilation, cancel_timer, set_combi_range)
     if not hass.services.has_service(DOMAIN, "set_turbo"):
         async def handle_set_turbo(call):
-            duration = call.data.get("duration", 20)
+            duration = int(call.data.get("duration", 20))
+            hass.data[DOMAIN]["last_timer_duration"] = duration
+            hass.data[DOMAIN]["last_timer_mode"] = MODE_TURBO
             for entry_data in hass.data[DOMAIN].values():
-                c = entry_data.get("coordinator")
-                if c and hasattr(c, "async_set_turbo"):
-                    await c.async_set_turbo(duration)
+                if isinstance(entry_data, dict):
+                    c = entry_data.get("coordinator")
+                    if c and hasattr(c, "async_set_turbo"):
+                        await c.async_set_turbo(duration)
         hass.services.async_register(DOMAIN, "set_turbo", handle_set_turbo)
 
     if not hass.services.has_service(DOMAIN, "set_ventilation"):
         async def handle_set_ventilation(call):
-            duration = call.data.get("duration", 15)
+            duration = int(call.data.get("duration", 15))
+            hass.data[DOMAIN]["last_timer_duration"] = duration
+            hass.data[DOMAIN]["last_timer_mode"] = MODE_VENTILATION
             for entry_data in hass.data[DOMAIN].values():
-                c = entry_data.get("coordinator")
-                if c and hasattr(c, "async_set_ventilation"):
-                    await c.async_set_ventilation(duration)
+                if isinstance(entry_data, dict):
+                    c = entry_data.get("coordinator")
+                    if c and hasattr(c, "async_set_ventilation"):
+                        await c.async_set_ventilation(duration)
         hass.services.async_register(DOMAIN, "set_ventilation", handle_set_ventilation)
 
     if not hass.services.has_service(DOMAIN, "cancel_timer"):
         async def handle_cancel_timer(call):
+            hass.data[DOMAIN]["last_timer_duration"] = None
+            hass.data[DOMAIN]["last_timer_mode"] = None
             for entry_data in hass.data[DOMAIN].values():
-                c = entry_data.get("coordinator")
-                if c and hasattr(c, "async_cancel_timer_mode"):
-                    await c.async_cancel_timer_mode()
+                if isinstance(entry_data, dict):
+                    c = entry_data.get("coordinator")
+                    if c and hasattr(c, "async_cancel_timer_mode"):
+                        await c.async_cancel_timer_mode()
         hass.services.async_register(DOMAIN, "cancel_timer", handle_cancel_timer)
+
+    if not hass.services.has_service(DOMAIN, "set_combi_range"):
+        async def handle_set_combi_range(call):
+            work_range = call.data.get("work_range")
+            stop_range = call.data.get("stop_range")
+            for entry_data in hass.data[DOMAIN].values():
+                if isinstance(entry_data, dict):
+                    c = entry_data.get("coordinator")
+                    if c and hasattr(c, "async_set_combi_range"):
+                        endpoint = c.data.get("endpoint", {}) if c.data else {}
+                        cur_work = float(work_range) if work_range is not None else float(endpoint.get("pidWindowLow", 0.1))
+                        cur_stop = float(stop_range) if stop_range is not None else float(endpoint.get("pidWindowHigh", 0.2))
+                        await c.async_set_combi_range(cur_work, cur_stop)
+        hass.services.async_register(DOMAIN, "set_combi_range", handle_set_combi_range)
+
+    if not hass.services.has_service(DOMAIN, "set_schedule"):
+        async def handle_set_schedule(call):
+            for entry_data in hass.data[DOMAIN].values():
+                if isinstance(entry_data, dict):
+                    c = entry_data.get("coordinator")
+                    if c and hasattr(c, "async_set_mode"):
+                        await c.async_set_mode(MODE_SCHEDULE)
+        hass.services.async_register(DOMAIN, "set_schedule", handle_set_schedule)
+
+    if not hass.services.has_service(DOMAIN, "set_auto"):
+        async def handle_set_auto(call):
+            for entry_data in hass.data[DOMAIN].values():
+                if isinstance(entry_data, dict):
+                    c = entry_data.get("coordinator")
+                    if c and hasattr(c, "async_set_mode"):
+                        await c.async_set_mode(MODE_AUTO)
+        hass.services.async_register(DOMAIN, "set_auto", handle_set_auto)
+
+    # Mevcut kayıtlı varlıkların kategorilerini otomatik güncelle (Kontroller, Yapılandırma, Tanılama ayrımı)
+    try:
+        from homeassistant.helpers import entity_registry as er
+        from homeassistant.const import EntityCategory
+        ent_reg = er.async_get(hass)
+        for reg_entry in list(ent_reg.entities.values()):
+            if reg_entry.config_entry_id == entry.entry_id:
+                uid = reg_entry.unique_id
+                target_cat = None
+                if any(k in uid for k in ("calibration", "combi_work_range", "combi_stop_range", "open_window_duration", "open_window_enable")):
+                    target_cat = EntityCategory.CONFIG
+                elif any(k in uid for k in ("battery", "rssi", "firmware", "connected")):
+                    target_cat = EntityCategory.DIAGNOSTIC
+                
+                if target_cat is not None and reg_entry.entity_category != target_cat:
+                    ent_reg.async_update_entity(reg_entry.entity_id, entity_category=target_cat)
+    except Exception as err:
+        _LOGGER.debug("Entity category migration check: %s", err)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     

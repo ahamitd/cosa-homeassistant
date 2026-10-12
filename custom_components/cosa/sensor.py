@@ -12,6 +12,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    EntityCategory,
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     UnitOfElectricPotential,
@@ -149,6 +150,8 @@ class CosaTargetTemperatureSensor(CosaBaseSensor):
 class CosaBatteryVoltageSensor(CosaBaseSensor):
     """Pil Voltajı Sensörü."""
 
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
     _attr_device_class = SensorDeviceClass.VOLTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfElectricPotential.VOLT
@@ -163,6 +166,8 @@ class CosaBatteryVoltageSensor(CosaBaseSensor):
 
 class CosaBatteryPercentSensor(CosaBaseSensor):
     """Pil Yüzdesi Sensörü."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -179,6 +184,8 @@ class CosaBatteryPercentSensor(CosaBaseSensor):
 
 class CosaRssiSensor(CosaBaseSensor):
     """Sinyal Gücü Sensörü."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     _attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -319,6 +326,8 @@ class CosaWeatherSensor(CosaBaseSensor):
 
 class CosaFirmwareVersionSensor(CosaBaseSensor):
     """Firmware Versiyonu Sensörü."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     _attr_icon = "mdi:chip"
     _attr_entity_registry_enabled_default = False

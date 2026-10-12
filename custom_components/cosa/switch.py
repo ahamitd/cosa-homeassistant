@@ -6,6 +6,7 @@ import logging
 
 from homeassistant.components.switch import SwitchEntity, SwitchDeviceClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -35,6 +36,7 @@ class CosaOpenWindowSwitch(CoordinatorEntity, SwitchEntity):
     """Açık Pencere Algılama Switch."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_device_class = SwitchDeviceClass.SWITCH
     _attr_icon = "mdi:window-open-variant"
 
