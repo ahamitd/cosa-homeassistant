@@ -297,7 +297,11 @@ class CosaClimate(CoordinatorEntity, ClimateEntity):
         elif preset_mode == PRESET_MANUEL:
             self._optimistic_target_temp = self._endpoint.get("customTemperature", 20)
         elif preset_mode in (PRESET_OTOMATIK, PRESET_HAFTALIK):
-            self._optimistic_target_temp = self._endpoint.get("targetTemperature", 21)
+            # The schedule/auto target is only known once the API reports it. Reusing the current
+            # targetTemperature here kept the previous manual value forever, because
+            # _handle_coordinator_update only clears it when the real target matches.
+            # Without an optimistic value, target_temperature derives it from the active option.
+            self._optimistic_target_temp = None
         
         self.async_write_ha_state()
         
