@@ -23,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 TEMPERATURE_MIN = 5.0
 TEMPERATURE_MAX = 32.0
-TEMPERATURE_STEP = 0.5
+TEMPERATURE_STEP = 0.1
 
 
 async def async_setup_entry(
