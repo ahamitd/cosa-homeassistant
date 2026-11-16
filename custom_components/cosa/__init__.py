@@ -110,7 +110,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         current_mode = endpoint.get("mode", MODE_AUTO)
         current_option = endpoint.get("option", OPTION_HOME)
         if current_mode in (MODE_TURBO, MODE_VENTILATION):
-            rollback = endpoint.get("rollback", {"mode": MODE_AUTO, "option": current_option})
+            rollback = endpoint.get("rollback") or {"mode": MODE_AUTO, "option": current_option}
         else:
             rollback = {"mode": current_mode, "option": current_option}
         
@@ -128,7 +128,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         current_mode = endpoint.get("mode", MODE_AUTO)
         current_option = endpoint.get("option", OPTION_HOME)
         if current_mode in (MODE_TURBO, MODE_VENTILATION):
-            rollback = endpoint.get("rollback", {"mode": MODE_AUTO, "option": current_option})
+            rollback = endpoint.get("rollback") or {"mode": MODE_AUTO, "option": current_option}
         else:
             rollback = {"mode": current_mode, "option": current_option}
         
@@ -143,7 +143,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def async_cancel_timer_mode() -> bool:
         """Turbo veya havalandırma modunu iptal edip rollback moduna dön."""
         endpoint = coordinator.data.get("endpoint", {}) if coordinator.data else {}
-        rollback = endpoint.get("rollback", {})
+        rollback = endpoint.get("rollback") or {}
         target_mode = rollback.get("mode", MODE_AUTO)
         target_option = rollback.get("option")
         result = await api.set_mode(endpoint_id, target_mode, option=target_option, token=token)
